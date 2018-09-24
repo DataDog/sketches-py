@@ -1,2 +1,2 @@
 # sketches-py
-Implementation of the sketch algorithms GKArray and DogSketch.
+Implementation of the quantile sketch algorithms GKArray and DogSketch.
