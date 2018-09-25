@@ -28,6 +28,10 @@ class GKArray:
         self._sum = 0
         self._avg = 0
 
+    def __repr__(self):
+        return "entries: {}, incoming: {}, count: {}, min: {}, max: {}, sum: {}, avg: {}\n".format(
+            self.entries, self.incoming, self._n, self._min, self._max, self._sum, self._avg)
+
     @property
     def name(self):
         return 'GKArray'
@@ -49,10 +53,10 @@ class GKArray:
     def add(self, val):
         """ Add a value to the sketch.
         """
+        self.incoming.append(val)
         self._n += 1
         self._sum += val
-        self._avg += (val - self._avg)*(1.0/self._n)
-        self.incoming.append(val)
+        self._avg += (val - self._avg)/float(self._n)
         if val < self._min:
             self._min = val
         if val > self._max:
@@ -68,7 +72,7 @@ class GKArray:
             entries: list of Entry 
         """
         removal_threshold = np.floor(2.0*self.eps*(self._n - 1))
-        incoming = self.incoming + [Entry(e.val, e.g, e.delta) for e in entries]  
+        incoming = [Entry(val, 1, 0) for val in self.incoming] + [Entry(e.val, e.g, e.delta) for e in entries]  
         incoming = sorted(incoming, key=lambda x: x.val)
 
         merged = []
@@ -108,48 +112,49 @@ class GKArray:
         self.entries = merged
         self.incoming = []
 
-    def merge(self, other):
+    def merge(self, sketch):
         """ Merge another GKArray into the current. The two sketches should have the same 
         epsilon value.
 
         Parameters:
             other: GKArray
         """
-        if self.eps != other.eps:
+        if self.eps != sketch.eps:
             raise UnequalEpsilonException("Cannot merge two GKArrays with different epsilon values")
 
-        if other._n == 0:
+        if sketch._n == 0:
             self.merge_compress()
             return
 
         if self._n == 0:
-            other.merge_compress()
-            self.entries = [Entry(e.val, e.g, e.delta) for e in other.entries]
-            self._min = other._min
-            self._max = other._max
-            self._n = other._n
-            self._sum = other._sum
-            self._avg = other._avg
+            sketch.merge_compress()
+            self.entries = [Entry(e.val, e.g, e.delta) for e in sketch.entries]
+            self._min = sketch._min
+            self._max = sketch._max
+            self._n = sketch._n
+            self._sum = sketch._sum
+            self._avg = sketch._avg
             return
              
         entries = []
-        spread = int(other.eps*(other._n - 1))
-        other.merge_compress()
-        g = other.entries[0].g + other.entries[0].delta - spread - 1
+        spread = int(sketch.eps*(sketch._n - 1))
+        sketch.merge_compress()
+        g = sketch.entries[0].g + sketch.entries[0].delta - spread - 1
         if g > 0:
-            entries.append(Entry(other._min, g, 0))
-        for i in range(len(other.entries)-1):
-            g = other.entries[i+1].g + other.entries[i+1].delta - other.entries[i].delta
+            entries.append(Entry(sketch._min, g, 0))
+        for i in range(len(sketch.entries)-1):
+            g = sketch.entries[i+1].g + sketch.entries[i+1].delta - sketch.entries[i].delta
             if g > 0:
-                entries.append(Entry(other.entries[i].val, g, 0))
-        g = spread + 1 - other.entries[len(other.entries) - 1].delta
+                entries.append(Entry(sketch.entries[i].val, g, 0))
+        g = spread + 1 - sketch.entries[len(sketch.entries) - 1].delta
         if g > 0:
-            entries.append(Entry(other.entries[len(other.entries) - 1].val, g, 0))
+            entries.append(Entry(sketch.entries[len(sketch.entries) - 1].val, g, 0))
 
-        self._n += other._n
-        self.eps = max(self.eps, other.eps)
-        self._min = min(self._min, other._min)
-        self._max = max(self._max, other._max)
+        self._n += sketch._n
+        self._sum += sketch._sum
+        self._avg += (sketch._avg - self._avg)*float(sketch._n)/self._n
+        self._min = min(self._min, sketch._min)
+        self._max = max(self._max, sketch._max)
 
         self.merge_compress(entries)
 
