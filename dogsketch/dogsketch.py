@@ -25,7 +25,6 @@ class DogSketch(object):
         if min_value < 0:
             min_value = DEFAULT_MIN_VALUE
 
-        self.eps = alpha
         self.gamma = 1 + 2*alpha
         self.gamma_ln = math.log1p(2*alpha)
         self.min_value = min_value
@@ -46,12 +45,15 @@ class DogSketch(object):
     def name(self):
         return 'DogSketch'
 
+    @property
     def num_values(self):
         return self._n
 
+    @property
     def avg(self):
         return self._avg
 
+    @property
     def sum(self):
         return self._sum
 
@@ -60,7 +62,7 @@ class DogSketch(object):
 
     def get_key(self, val):
         if val < -self.min_value:
-            return -int(math.log(-val)/self.gamma_ln) - self.offset
+            return -int(math.ceil(math.log(-val)/self.gamma_ln)) - self.offset
         elif val > self.min_value:
             return int(math.ceil(math.log(val)/self.gamma_ln)) + self.offset
         else:
@@ -97,13 +99,12 @@ class DogSketch(object):
                 key = i + self.store.min_key
                 if key < 0:
                     key += self.offset
-                    return -0.5*(1 - self.gamma)*pow(self.gamma, -key)
+                    return -0.5*(1 + self.gamma)*pow(self.gamma, -key-1)
                 elif key > 0:
                     key -= self.offset
                     return 0.5*(1 + self.gamma)*pow(self.gamma, key-1)
                 else:
-                    return 
-
+                    return 0
                 
         return self.store.quantile(q)
             
