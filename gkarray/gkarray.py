@@ -1,6 +1,9 @@
 import numpy as np
 
 
+DEFAULT_EPS = 0.005
+ 
+
 class UnequalEpsilonException(Exception):
     pass
 
@@ -18,8 +21,11 @@ class Entry:
 
 class GKArray:
 
-    def __init__(self, eps):
-        self.eps = eps
+    def __init__(self, eps=None):
+        if eps is None or eps <= 0 or eps >= 1:
+            self.eps = DEFAULT_EPS
+        else:
+            self.eps = eps
         self.entries = []
         self.incoming = []
         self._min = float('+inf')
@@ -36,12 +42,15 @@ class GKArray:
     def name(self):
         return 'GKArray'
 
+    @property
     def num_values(self):
         return self._n
 
+    @property
     def avg(self):
         return self._avg
 
+    @property
     def sum(self):
         return self._sum
 
@@ -171,17 +180,13 @@ class GKArray:
         if len(self.incoming) > 0:
             self.merge_compress()
 
-        if self._n < 1.0/self.eps:
-            # no need to bother with sketching
-            return np.percentile([x.val for x in self.entries], q*100)
-
         rank = int(q*(self._n - 1) + 1)
         spread = int(self.eps*(self._n - 1))
         g_sum = 0.0
         i = 0
         while i < len(self.entries):
             g_sum += self.entries[i].g
-            if g_sum + self.entries[i].delta - 1 > rank + spread:
+            if g_sum + self.entries[i].delta > rank + spread:
                     break
             i += 1
         if i == 0:
@@ -202,15 +207,10 @@ class GKArray:
         if len(self.incoming) > 0:
             self.merge_compress()
 
-        if self._n < 1.0/self.eps:
-            values = [x.val for x in self.entries]
-            return [np.percentile(values, q*100) if q >= 0 and q <= 1 else np.NaN for q in q_values]   
-
         # if q_values are not sorted, call self.quantile() for each
         if q_values != sorted(q_values):
             return [self.quantile(q) for q in q_values]
 
-        #import pdb; pdb.set_trace()
         quantiles = []
         spread = int(self.eps*(self._n - 1))
         g_sum = 0.0
@@ -221,7 +221,7 @@ class GKArray:
                 if q_values[j] < 0 or q_values[j] > 1:
                     quantiles.append(np.NaN)
                     j += 1
-                elif g_sum + self.entries[i].delta - 1 > int(q_values[j]*(self._n - 1) + 1) + spread:
+                elif g_sum + self.entries[i].delta > int(q_values[j]*(self._n - 1) + 1) + spread:
                     quantiles.append(self._min if i == 0 else self.entries[i-1].val)
                     j += 1
                 else:
