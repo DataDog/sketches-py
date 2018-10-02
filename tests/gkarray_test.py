@@ -1,6 +1,5 @@
 from collections import defaultdict, namedtuple
 
-import nose.tools as nt
 import numpy as np
 
 from datasets import *
@@ -27,10 +26,10 @@ def evaluate_sketch_accuracy(sketch, data, eps):
         sketch_rank = data.rank(sketch.quantile(q))
         data_rank = int(q*(n - 1) + 1) 
         err = abs(sketch_rank - data_rank)
-        nt.assert_true(err - eps*n <= 0)
-    nt.assert_equal(sketch.num_values, n)
-    nt.assert_almost_equal(sketch.sum, data.sum)
-    nt.assert_almost_equal(sketch.avg, data.avg)
+        np.testing.assert_equal(err - eps*n <= 0, True)
+    np.testing.assert_equal(sketch.num_values, n)
+    np.testing.assert_almost_equal(sketch.sum, data.sum)
+    np.testing.assert_almost_equal(sketch.avg, data.avg)
 
 def test_constant():
     for n in test_sizes:
@@ -39,7 +38,7 @@ def test_constant():
         for v in data.data:
             sketch.add(v)
         for q in test_quantiles:
-            nt.assert_equal(sketch.quantile(q), 42)
+            np.testing.assert_equal(sketch.quantile(q), 42)
 
 def test_merge_equal():
     parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
@@ -93,7 +92,7 @@ def test_quantiles_func():
             s.add(v)
         quantiles = s.quantiles(test_quantiles)
         for i, q in enumerate(quantiles):
-            nt.assert_almost_equal(q, s.quantile(test_quantiles[i]))
+            np.testing.assert_almost_equal(q, s.quantile(test_quantiles[i]))
 
 def test_quantiles_func_invalid():
     s = GKArray(test_eps)
@@ -104,9 +103,9 @@ def test_quantiles_func_invalid():
     quantiles = s.quantiles(q_vals)
     for i, q in enumerate(q_vals):
         if q < 0 or q > 1:
-            nt.assert_true(quantiles[i], np.nan)
+            np.testing.assert_equal(quantiles[i], np.nan)
         else:
-            nt.assert_almost_equal(quantiles[i], s.quantile(q))
+            np.testing.assert_almost_equal(quantiles[i], s.quantile(q))
 
 def test_consistent_merge():
     """ Test that merge() calls do not modify the argument sketch.
@@ -118,7 +117,7 @@ def test_consistent_merge():
         s1.add(v)
     s1.merge(s2)
     # s2 is still empty
-    nt.assert_true(s2.size, 0)
+    np.testing.assert_equal(s2.num_values, 0)
 
     d = Normal(50)
     for v in d.data:

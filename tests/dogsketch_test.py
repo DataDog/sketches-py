@@ -1,6 +1,5 @@
 from collections import defaultdict, namedtuple
 
-import nose.tools as nt
 import numpy as np
 
 from datasets import *
@@ -31,10 +30,10 @@ def evaluate_sketch_accuracy(sketch, data, eps):
         sketch_q = sketch.quantile(q)
         data_q = data.quantile(q) 
         err = abs(sketch_q - data_q)
-        nt.assert_true(err - eps*abs(data_q) <= 0)
-    nt.assert_equal(sketch.num_values, n)
-    nt.assert_almost_equal(sketch.sum, data.sum)
-    nt.assert_almost_equal(sketch.avg, data.avg)
+        np.testing.assert_equal(err - eps*abs(data_q) <= 0, True)
+    np.testing.assert_equal(sketch.num_values, n)
+    np.testing.assert_almost_equal(sketch.sum, data.sum)
+    np.testing.assert_almost_equal(sketch.avg, data.avg)
 
 def test_merge_equal():
     parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
@@ -90,7 +89,7 @@ def test_consistent_merge():
         s1.add(v)
     s1.merge(s2)
     # s2 is still empty
-    nt.assert_true(s2.size, 0)
+    np.testing.assert_equal(s2.num_values, 0)
 
     d = Normal(50)
     for v in d.data:
