@@ -27,7 +27,7 @@ Find the quantiles of `values` to within epsilon of rank.
 ```
 quantiles = sketch.quantiles([0.5, 0.75, 0.9, 1])
 ```
-Merge another GKArray into sketch.
+Merge another `GKArray` into `sketch`.
 ```
 another_sketch = GKArray()
 other_values = np.random.normal(size=500)
@@ -44,7 +44,7 @@ quantiles = sketch.quantile([0.5, 0.75, 0.9, 1])
 
 DogSketch has a relative error guarantee of alpha for any quantile q in [0, 1] that is not too small. Concretely, the q-quantile will be accurate up to a relative error of alpha as long as it belongs to one of the m buckets kept by the sketch. The default values of alpha and m are 0.01 and 2048, repectively. In addition, a value that is smaller than min_value in magnitude is indistinguishable from 0. The default min_value is 1.0e-9.
 
-## Usage
+### Usage
 ```
 from dogsketch.dogsketch import DogSketch
 
@@ -60,9 +60,9 @@ for v in values:
 ```
 Find the quantiles of `values` to within alpha relative error.
 ```
-quantiles = sketch.quantiles([0.5, 0.75, 0.9, 1])
+quantiles = [sketch.quantile(q) for q in [0.5, 0.75, 0.9, 1]]
 ```
-Merge another DogSketch into sketch.
+Merge another `DogSketch` into `sketch`.
 ```
 another_sketch = DogSketch()
 other_values = np.random.normal(size=500)
@@ -72,7 +72,7 @@ sketch.merge(another_sketch)
 ```
 The quantiles of `values` concatenated with `other_values` are still accurate to within alpha relative error.
 ```
-quantiles = sketch.quantile([0.5, 0.75, 0.9, 1])
+quantiles = [sketch.quantile(q) for q in [0.5, 0.75, 0.9, 1]]
 ```
 
 ## References
