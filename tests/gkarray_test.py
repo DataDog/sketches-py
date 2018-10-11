@@ -89,29 +89,6 @@ def test_merge_mixed():
             s.merge(sketch)
         evaluate_sketch_accuracy(s, d, 2*s.eps)
 
-def test_quantiles_func():
-    for n in test_sizes:
-        s = GKArray(test_eps)
-        d = Lognormal(n)
-        for v in d.data:
-            s.add(v)
-        quantiles = s.quantiles(test_quantiles)
-        for i, q in enumerate(quantiles):
-            np.testing.assert_almost_equal(q, s.quantile(test_quantiles[i]))
-
-def test_quantiles_func_invalid():
-    s = GKArray(test_eps)
-    d = Lognormal(100)
-    for v in d.data:
-        s.add(v)
-    q_vals = [-0.2, -0.1, 0.5, 0.75, 0.95, 1.2]
-    quantiles = s.quantiles(q_vals)
-    for i, q in enumerate(q_vals):
-        if q < 0 or q > 1:
-            np.testing.assert_equal(quantiles[i], np.nan)
-        else:
-            np.testing.assert_almost_equal(quantiles[i], s.quantile(q))
-
 def test_consistent_merge():
     """ Test that merge() calls do not modify the argument sketch.
     """
@@ -128,16 +105,18 @@ def test_consistent_merge():
     for v in d.data:
         s2.add(v)
 
-    s2_summary = s2.quantiles(test_quantiles) + [s2.sum, s2.avg, s2.num_values]
+    s2_summary = [s2.quantile(q) for q in test_quantiles]+ [s2.sum, s2.avg, s2.num_values]
     s1.merge(s2)
     d = Normal(10)
     for v in d.data:
         s1.add(v)
     # changes to s1 does not affect s2 after merge
-    s2_summary = s2.quantiles(test_quantiles) + [s2.sum, s2.avg, s2.num_values]
-    np.testing.assert_almost_equal(s2.quantiles(test_quantiles) + [s2.sum, s2.avg, s2.num_values], s2_summary)
+    s2_summary = [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values]
+    np.testing.assert_almost_equal([s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values], 
+        s2_summary)
      
     s3 = GKArray(test_eps)
     s3.merge(s2)
     # merging to an empty sketch does not change s2
-    np.testing.assert_almost_equal(s2.quantiles(test_quantiles) + [s2.sum, s2.avg, s2.num_values], s2_summary)
+    np.testing.assert_almost_equal([s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
+        s2_summary)

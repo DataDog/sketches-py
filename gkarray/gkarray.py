@@ -6,14 +6,14 @@
 import numpy as np
 
 
-DEFAULT_EPS = 0.005
+DEFAULT_EPS = 0.01
  
 
 class UnequalEpsilonException(Exception):
     pass
 
 
-class Entry:
+class Entry(object):
     
     def __init__(self, val, g, delta):
         self.val = val
@@ -24,7 +24,7 @@ class Entry:
         return 'Entry(val={}, g={}, delta={})'.format(self.val, self.g, self.delta)
 
 
-class GKArray:
+class GKArray(object):
 
     def __init__(self, eps=None):
         if eps is None or eps <= 0 or eps >= 1:
@@ -35,13 +35,12 @@ class GKArray:
         self.incoming = []
         self._min = float('+inf')
         self._max = float('-inf')
-        self._n = 0
+        self._count = 0
         self._sum = 0
-        self._avg = 0
 
     def __repr__(self):
-        return "entries: {}, incoming: {}, count: {}, min: {}, max: {}, sum: {}, avg: {}\n".format(
-            self.entries, self.incoming, self._n, self._min, self._max, self._sum, self._avg)
+        return "entries: {}, incoming: {}, count: {}, min: {}, max: {}, sum: {}\n".format(
+            self.entries, self.incoming, self._count, self._min, self._max, self._sum)
 
     @property
     def name(self):
@@ -49,11 +48,11 @@ class GKArray:
 
     @property
     def num_values(self):
-        return self._n
+        return self._count
 
     @property
     def avg(self):
-        return self._avg
+        return float(self._sum)/self._count
 
     @property
     def sum(self):
@@ -68,14 +67,13 @@ class GKArray:
         """ Add a value to the sketch.
         """
         self.incoming.append(val)
-        self._n += 1
+        self._count += 1
         self._sum += val
-        self._avg += (val - self._avg)/float(self._n)
         if val < self._min:
             self._min = val
         if val > self._max:
             self._max = val
-        if self._n % (int(1.0/self.eps) + 1) == 0:
+        if self._count % (int(1.0/self.eps) + 1) == 0:
             self.merge_compress()
 
     def merge_compress(self, entries=[]):
@@ -85,7 +83,7 @@ class GKArray:
         Parameters:
             entries: list of Entry 
         """
-        removal_threshold = np.floor(2.0*self.eps*(self._n - 1))
+        removal_threshold = np.floor(2.0*self.eps*(self._count - 1))
         incoming = [Entry(val, 1, 0) for val in self.incoming] + [Entry(e.val, e.g, e.delta) for e in entries]  
         incoming = sorted(incoming, key=lambda x: x.val)
 
@@ -136,22 +134,20 @@ class GKArray:
         if self.eps != sketch.eps:
             raise UnequalEpsilonException("Cannot merge two GKArrays with different epsilon values")
 
-        if sketch._n == 0:
-            self.merge_compress()
+        if sketch._count == 0:
             return
 
-        if self._n == 0:
-            sketch.merge_compress()
+        if self._count == 0:
             self.entries = [Entry(e.val, e.g, e.delta) for e in sketch.entries]
+            self.incoming = sketch.incoming[:]
             self._min = sketch._min
             self._max = sketch._max
-            self._n = sketch._n
+            self._count = sketch._count
             self._sum = sketch._sum
-            self._avg = sketch._avg
             return
              
         entries = []
-        spread = int(sketch.eps*(sketch._n - 1))
+        spread = int(sketch.eps*(sketch._count - 1))
         sketch.merge_compress()
         g = sketch.entries[0].g + sketch.entries[0].delta - spread - 1
         if g > 0:
@@ -164,9 +160,8 @@ class GKArray:
         if g > 0:
             entries.append(Entry(sketch.entries[len(sketch.entries) - 1].val, g, 0))
 
-        self._n += sketch._n
+        self._count += sketch._count
         self._sum += sketch._sum
-        self._avg += (sketch._avg - self._avg)*float(sketch._n)/self._n
         self._min = min(self._min, sketch._min)
         self._max = max(self._max, sketch._max)
 
@@ -179,14 +174,14 @@ class GKArray:
             q: quantile to query for
                0 <= q <= 1
         """
-        if q < 0 or q > 1 or self._n == 0:
+        if q < 0 or q > 1 or self._count == 0:
             return np.nan
 
         if len(self.incoming) > 0:
             self.merge_compress()
 
-        rank = int(q*(self._n - 1) + 1)
-        spread = int(self.eps*(self._n - 1))
+        rank = int(q*(self._count - 1) + 1)
+        spread = int(self.eps*(self._count - 1))
         g_sum = 0.0
         i = 0
         while i < len(self.entries):
@@ -198,45 +193,3 @@ class GKArray:
             return self._min
 
         return self.entries[i-1].val
-
-    def quantiles(self, q_values):
-        """ Return an array of epsilon-approximate elements at each of the quantiles
-        q_values.
-
-        Parameters:
-            q_values: [] of floats between 0 and 1
-        """
-        if self._n == 0:
-            return [np.NaN]*len(q_values)
-
-        if len(self.incoming) > 0:
-            self.merge_compress()
-
-        # if q_values are not sorted, call self.quantile() for each
-        if q_values != sorted(q_values):
-            return [self.quantile(q) for q in q_values]
-
-        quantiles = []
-        spread = int(self.eps*(self._n - 1))
-        g_sum = 0.0
-        i, j = 0, 0
-        while (i < len(self.entries) and j < len(q_values)):
-            g_sum += self.entries[i].g
-            while j < len(q_values):
-                if q_values[j] < 0 or q_values[j] > 1:
-                    quantiles.append(np.NaN)
-                    j += 1
-                elif g_sum + self.entries[i].delta > int(q_values[j]*(self._n - 1) + 1) + spread:
-                    quantiles.append(self._min if i == 0 else self.entries[i-1].val)
-                    j += 1
-                else:
-                    break
-            i += 1
-        while j < len(q_values):
-            if q_values[j] < 0 or q_values[j] > 1:
-                quantiles.append(np.NaN)
-            else:
-                quantiles.append(self._max)
-            j += 1
-
-        return quantiles

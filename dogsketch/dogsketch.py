@@ -38,13 +38,12 @@ class DogSketch(object):
         self.store = Store(bin_limit)
         self._min = float('+inf') 
         self._max = float('-inf') 
-        self._n = 0
+        self._count = 0
         self._sum = 0
-        self._avg = 0
 
     def __repr__(self):
-        return "store: {{{}}}, count: {}, sum: {}, avg: {}, min: {}, max: {}".format(
-            self.store, self._n, self._sum, self._avg, self._min, self._max)
+        return "store: {{{}}}, count: {}, sum: {}, min: {}, max: {}".format(
+            self.store, self.count, self._sum, self.min, self.max)
 
     @property
     def name(self):
@@ -52,18 +51,15 @@ class DogSketch(object):
 
     @property
     def num_values(self):
-        return self._n
+        return self._count
 
     @property
     def avg(self):
-        return self._avg
+        return float(self._sum)/self._count
 
     @property
     def sum(self):
         return self._sum
-
-    def size(self):
-        return self.store.length()
 
     def get_key(self, val):
         if val < -self.min_value:
@@ -80,47 +76,42 @@ class DogSketch(object):
         self.store.add(key)
 
         # Keep track of summary stats
-        self._n += 1
+        self._count += 1
         self._sum += val
-        self._avg += (val - self._avg)/float(self._n)
         if val < self._min:
             self._min = val
         if val > self._max:
             self._max = val
 
     def quantile(self, q):
-        if q < 0 or q > 1 or self._n == 0:
+        if q < 0 or q > 1 or self._count == 0:
             return np.NaN
         if q == 0:
             return self._min
         if q == 1:
             return self._max
 
-        rank = int(q*(self._n - 1) + 1)
-        n = 0
-        for i, b in enumerate(self.store.bins):
-            n += b
-            if n >= rank:
-                key = i + self.store.min_key
-                if key < 0:
+        rank = int(q*(self._count - 1) + 1)
+        key = self.store.key_at_rank(rank)
+        if key < 0:
                     key += self.offset
-                    return -0.5*(1 + self.gamma)*pow(self.gamma, -key-1)
-                elif key > 0:
+                    quantile = -0.5*(1 + self.gamma)*pow(self.gamma, -key-1)
+        elif key > 0:
                     key -= self.offset
-                    return 0.5*(1 + self.gamma)*pow(self.gamma, key-1)
-                else:
-                    return 0
-                
-        return self.store.quantile(q)
+                    quantile = 0.5*(1 + self.gamma)*pow(self.gamma, key-1)
+        else:
+            quantile = 0
+
+        return  max(quantile, self._min)
             
     def merge(self, sketch):
         if not self.mergeable(sketch):
             raise UnequalSketchParametersException("Cannot merge two DogSketches with different parameters")
 
-        if sketch._n == 0:
+        if sketch._count == 0:
             return
 
-        if self._n == 0:
+        if self._count == 0:
             self.copy(sketch)
             return
 
@@ -128,9 +119,8 @@ class DogSketch(object):
         self.store.merge(sketch.store)
 
         # Merge summary stats
-        self._n += sketch._n
+        self._count += sketch._count
         self._sum += sketch._sum
-        self._avg += (sketch._avg - self._avg)*sketch._n/self._n
         if sketch._min < self._min:
             self._min = sketch._min
         if sketch._max > self._max:
@@ -145,6 +135,5 @@ class DogSketch(object):
         self.store.copy(sketch.store) 
         self._min = sketch._min
         self._max = sketch._max
-        self._n = sketch._n
+        self._count = sketch._count
         self._sum = sketch._sum
-        self._avg = sketch._avg
