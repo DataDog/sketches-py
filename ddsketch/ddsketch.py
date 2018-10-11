@@ -19,7 +19,7 @@ class UnequalSketchParametersException(Exception):
     pass
 
 
-class DogSketch(object):
+class DDSketch(object):
 
     def __init__(self, alpha=None, bin_limit=None, min_value=None):
         # Make sure the parameters are valid
