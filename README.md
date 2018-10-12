@@ -8,7 +8,7 @@ To install this package, clone the repo and run `python setup.py install`. This 
 
 ## GKArray
 
-GKArray provides a sketch with a rank error guarantee of espilon (without merge) or 2\*epsilon (with merge). The default value of epsilon is 0.01.
+GKArray provides a sketch with a rank error guarantee of espilon (without merge) or 2\*epsilon (with merge). The default value of epsilon is 0.01. For more details, refer to [2].
 
 ### Usage
 ```
