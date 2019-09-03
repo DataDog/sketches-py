@@ -59,7 +59,7 @@ Find the quantiles of `values` to within alpha relative error.
 ```
 quantiles = [sketch.quantile(q) for q in [0.5, 0.75, 0.9, 1]]
 ```
-Merge another `DogSketch` into `sketch`.
+Merge another `DDSketch` into `sketch`.
 ```
 another_sketch = DDSketch()
 other_values = np.random.normal(size=500)
@@ -67,7 +67,7 @@ for v in other_values:
   another_sketch.add(v)
 sketch.merge(another_sketch)
 ```
-The quantiles of `values` concatenated with `other_values` are still accurate to within alpha relative error.ls
+The quantiles of `values` concatenated with `other_values` are still accurate to within alpha relative error.
 
 ## References
 [1] Michael B. Greenwald and Sanjeev Khanna. Space-efficient online computation of quantile summaries. In Proc. 2001 ACM

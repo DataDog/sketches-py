@@ -47,7 +47,7 @@ class DDSketch(object):
 
     @property
     def name(self):
-        return 'DogSketch'
+        return 'DDSketch'
 
     @property
     def num_values(self):
@@ -106,7 +106,7 @@ class DDSketch(object):
             
     def merge(self, sketch):
         if not self.mergeable(sketch):
-            raise UnequalSketchParametersException("Cannot merge two DogSketches with different parameters")
+            raise UnequalSketchParametersException("Cannot merge two DDSketches with different parameters")
 
         if sketch._count == 0:
             return

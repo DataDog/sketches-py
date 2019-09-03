@@ -8,7 +8,7 @@ setup(
     author='Jee Rim, Charles-Philippe Masson',
     author_email='jee.rim@datadoghq.com charles.masson@datadoghq.com',
     license='BSD-3-Clause',
-    packages=['dogsketch', 'gkarray'],
+    packages=['ddsketch', 'gkarray'],
     install_requires=[
         'numpy>=1.11.0'
     ],
