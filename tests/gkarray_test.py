@@ -29,7 +29,7 @@ def evaluate_sketch_accuracy(sketch, data, eps):
     n = data.size
     for q in test_quantiles:
         sketch_rank = data.rank(sketch.quantile(q))
-        data_rank = int(q*(n - 1) + 1) 
+        data_rank = int(q*(n - 1) + 1)
         err = abs(sketch_rank - data_rank)
         np.testing.assert_equal(err - eps*n <= 0, True)
     np.testing.assert_equal(sketch.num_values, n)
@@ -73,7 +73,7 @@ def test_merge_unequal():
                     s2.add(v)
             s1.merge(s2)
             evaluate_sketch_accuracy(s1, d, 2*s1.eps)
-            
+
 def test_merge_mixed():
     ntests = 20
     datasets = [Normal, Exponential, Laplace, Bimodal]
@@ -81,7 +81,7 @@ def test_merge_mixed():
         d = EmptyDataset(0)
         s = GKArray(test_eps)
         for dataset in datasets:
-            generator = dataset(np.random.randint(0, 500))    
+            generator = dataset(np.random.randint(0, 500))
             sketch = GKArray(test_eps)
             for v in generator.data:
                 sketch.add(v)
@@ -112,9 +112,9 @@ def test_consistent_merge():
         s1.add(v)
     # changes to s1 does not affect s2 after merge
     s2_summary = [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values]
-    np.testing.assert_almost_equal([s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values], 
+    np.testing.assert_almost_equal([s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
         s2_summary)
-     
+
     s3 = GKArray(test_eps)
     s3.merge(s2)
     # merging to an empty sketch does not change s2

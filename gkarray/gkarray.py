@@ -7,14 +7,14 @@ import numpy as np
 
 
 DEFAULT_EPS = 0.01
- 
+
 
 class UnequalEpsilonException(Exception):
     pass
 
 
 class Entry(object):
-    
+
     def __init__(self, val, g, delta):
         self.val = val
         self.g = g
@@ -81,17 +81,17 @@ class GKArray(object):
         self.incoming buffer.
 
         Parameters:
-            entries: list of Entry 
+            entries: list of Entry
         """
         removal_threshold = np.floor(2.0*self.eps*(self._count - 1))
-        incoming = [Entry(val, 1, 0) for val in self.incoming] + [Entry(e.val, e.g, e.delta) for e in entries]  
+        incoming = [Entry(val, 1, 0) for val in self.incoming] + [Entry(e.val, e.g, e.delta) for e in entries]
         incoming = sorted(incoming, key=lambda x: x.val)
 
         merged = []
         i, j = 0, 0
         while i < len(incoming) or j < len(self.entries):
             if i == len(incoming):
-                # done with incoming; now only considering entries 
+                # done with incoming; now only considering entries
                 if j + 1 < len(self.entries) and\
                    self.entries[j].g + self.entries[j+1].g + self.entries[j+1].delta <= removal_threshold:
                     self.entries[j+1].g += self.entries[j].g
@@ -101,7 +101,7 @@ class GKArray(object):
             elif j == len(self.entries):
                 # done with entries; now only considering incoming
                 if i+1 < len(incoming) and\
-                   incoming[i].g + incoming[i+1].g + incoming[i+1].delta <= removal_threshold: 
+                   incoming[i].g + incoming[i+1].g + incoming[i+1].delta <= removal_threshold:
                     incoming[i+1].g += incoming[i].g
                 else:
                     merged.append(incoming[i])
@@ -110,7 +110,7 @@ class GKArray(object):
                 if incoming[i].g + self.entries[j].g + self.entries[j].delta <= removal_threshold:
                     self.entries[j].g += incoming[i].g
                 else:
-                    incoming[i].delta = self.entries[j].g + self.entries[j].delta - incoming[i].g 
+                    incoming[i].delta = self.entries[j].g + self.entries[j].delta - incoming[i].g
                     merged.append(incoming[i])
                 i += 1
             else:
@@ -125,7 +125,7 @@ class GKArray(object):
         self.incoming = []
 
     def merge(self, sketch):
-        """ Merge another GKArray into the current. The two sketches should have the same 
+        """ Merge another GKArray into the current. The two sketches should have the same
         epsilon value.
 
         Parameters:
@@ -145,7 +145,7 @@ class GKArray(object):
             self._count = sketch._count
             self._sum = sketch._sum
             return
-             
+
         entries = []
         spread = int(sketch.eps*(sketch._count - 1))
         sketch.merge_compress()

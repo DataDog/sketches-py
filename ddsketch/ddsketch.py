@@ -13,7 +13,7 @@ from store import Store
 DEFAULT_ALPHA = 0.01
 DEFAULT_BIN_LIMIT = 2048
 DEFAULT_MIN_VALUE = 1.0e-9
-        
+
 
 class UnequalSketchParametersException(Exception):
     pass
@@ -36,8 +36,8 @@ class DDSketch(object):
         self.offset = -int(math.ceil(math.log(min_value)/self.gamma_ln)) + 1
 
         self.store = Store(bin_limit)
-        self._min = float('+inf') 
-        self._max = float('-inf') 
+        self._min = float('+inf')
+        self._max = float('-inf')
         self._count = 0
         self._sum = 0
 
@@ -103,7 +103,7 @@ class DDSketch(object):
             quantile = 0
 
         return  max(quantile, self._min)
-            
+
     def merge(self, sketch):
         if not self.mergeable(sketch):
             raise UnequalSketchParametersException("Cannot merge two DDSketches with different parameters")
@@ -132,7 +132,7 @@ class DDSketch(object):
         return self.gamma == other.gamma and self.min_value == other.min_value
 
     def copy(self, sketch):
-        self.store.copy(sketch.store) 
+        self.store.copy(sketch.store)
         self._min = sketch._min
         self._max = sketch._max
         self._count = sketch._count

@@ -8,7 +8,7 @@ from collections import defaultdict, namedtuple
 import numpy as np
 
 from datasets import *
-from ddsketch.ddsketch import DDSketch 
+from ddsketch.ddsketch import DDSketch
 
 test_quantiles = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
 test_sizes = [3, 5, 10, 100, 1000]
@@ -16,7 +16,7 @@ datasets = [UniformForward, UniformBackward, UniformZoomIn, UniformZoomOut, Unif
             Constant, Exponential, Lognormal, Normal, Laplace, Bimodal, Trimodal, Mixed]
 
 test_alpha = 0.05
-test_bin_limit = 1024 
+test_bin_limit = 1024
 test_min_value = 1.0e-9
 
 
@@ -33,7 +33,7 @@ def evaluate_sketch_accuracy(sketch, data, eps):
     n = data.size
     for q in test_quantiles:
         sketch_q = sketch.quantile(q)
-        data_q = data.quantile(q) 
+        data_q = data.quantile(q)
         err = abs(sketch_q - data_q)
         np.testing.assert_equal(err - eps*abs(data_q) <= 0, True)
     np.testing.assert_equal(sketch.num_values, n)
@@ -68,7 +68,7 @@ def test_merge_unequal():
                     s2.add(v)
             s1.merge(s2)
             evaluate_sketch_accuracy(s1, d, test_alpha)
-            
+
 def test_merge_mixed():
     ntests = 20
     datasets = [Normal, Exponential, Laplace, Bimodal]
@@ -76,7 +76,7 @@ def test_merge_mixed():
         d = EmptyDataset(0)
         s = DDSketch(test_alpha, test_bin_limit, test_min_value)
         for dataset in datasets:
-            generator = dataset(np.random.randint(0, 500))    
+            generator = dataset(np.random.randint(0, 500))
             sketch = DDSketch(test_alpha, test_bin_limit, test_min_value)
             for v in generator.data:
                 sketch.add(v)
@@ -109,7 +109,7 @@ def test_consistent_merge():
     s2_summary = [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values]
     np.testing.assert_almost_equal(s2_summary,
         [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values])
-     
+
     s3 = DDSketch(test_alpha, test_bin_limit, test_min_value)
     s3.merge(s2)
     # merging to an empty sketch does not change s2

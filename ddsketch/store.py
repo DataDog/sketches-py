@@ -11,7 +11,7 @@ GROW_LEFT_BY = 128
 
 
 class Store(object):
-   
+
     def __init__(self, max_bins):
         self.max_bins = max_bins
         self.bins = [0]*INITIAL_NBINS
@@ -90,10 +90,10 @@ class Store(object):
     def merge(self, store):
         if store.count == 0:
             return
-        
+
         if self.count == 0:
             self.copy(store)
-            
+
         if self.max_key > store.max_key:
             if store.min_key < self.min_key:
                 self.grow_left(store.min_key)
@@ -115,7 +115,7 @@ class Store(object):
             else:
                 self.grow_right(store.max_key)
                 for i in range(store.min_key, store.max_key+1):
-                    self.bins[i-self.min_key] += store.bins[i-store.min_key] 
+                    self.bins[i-self.min_key] += store.bins[i-store.min_key]
 
         self.count += store.count
 
