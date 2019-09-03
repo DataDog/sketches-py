@@ -30,8 +30,8 @@ class DDSketch(object):
         if min_value < 0:
             min_value = DEFAULT_MIN_VALUE
 
-        self.gamma = 1 + 2*alpha
-        self.gamma_ln = math.log1p(2*alpha)
+        self.gamma = 1 + 2*alpha/(1-alpha)
+        self.gamma_ln = math.log1p(2*alpha/(1-alpha))
         self.min_value = min_value
         self.offset = -int(math.ceil(math.log(min_value)/self.gamma_ln)) + 1
 
