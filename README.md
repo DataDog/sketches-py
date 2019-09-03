@@ -16,7 +16,7 @@ from gkarray.gkarray import GKArray
 
 sketch = GKArray()
 ```
-Add some values to the sketch. 
+Add some values to the sketch.
 ```
 import numpy as np
 values = np.random.normal(size=500)
@@ -73,5 +73,4 @@ The quantiles of `values` concatenated with `other_values` are still accurate to
 [1] Michael B. Greenwald and Sanjeev Khanna. Space-efficient online computation of quantile summaries. In Proc. 2001 ACM
 SIGMOD International Conference on Management of Data, SIGMOD ’01, pages 58–66. ACM, 2001.
 
-[2] Charles Masson, Jee Rim and Homin K. Lee. All the nines: a fully mergeable quantile sketch with relative-error guarantees for arbitrarily large quantiles. 2018.
-
+[2] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019.
