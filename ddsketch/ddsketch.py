@@ -95,10 +95,10 @@ class DDSketch(object):
         key = self.store.key_at_rank(rank)
         if key < 0:
                     key += self.offset
-                    quantile = -0.5*(1 + self.gamma)*pow(self.gamma, -key-1)
+                    quantile = -2*pow(self.gamma, -key)/(1 + self.gamma)
         elif key > 0:
                     key -= self.offset
-                    quantile = 0.5*(1 + self.gamma)*pow(self.gamma, key-1)
+                    quantile = 2*pow(self.gamma, key)/(1 + self.gamma)
         else:
             quantile = 0
 
