@@ -30,8 +30,8 @@ class DDSketch(object):
         if min_value < 0:
             min_value = DEFAULT_MIN_VALUE
 
-        self.gamma = 1 + 2*alpha
-        self.gamma_ln = math.log1p(2*alpha)
+        self.gamma = 1 + 2*alpha/(1-alpha)
+        self.gamma_ln = math.log1p(2*alpha/(1-alpha))
         self.min_value = min_value
         self.offset = -int(math.ceil(math.log(min_value)/self.gamma_ln)) + 1
 
@@ -95,10 +95,10 @@ class DDSketch(object):
         key = self.store.key_at_rank(rank)
         if key < 0:
                     key += self.offset
-                    quantile = -0.5*(1 + self.gamma)*pow(self.gamma, -key-1)
+                    quantile = -2*pow(self.gamma, -key)/(1 + self.gamma)
         elif key > 0:
                     key -= self.offset
-                    quantile = 0.5*(1 + self.gamma)*pow(self.gamma, key-1)
+                    quantile = 2*pow(self.gamma, key)/(1 + self.gamma)
         else:
             quantile = 0
 

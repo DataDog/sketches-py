@@ -228,7 +228,7 @@ class Normal(Dataset):
     @classmethod
     def from_params(cls, loc, scale, n):
         cls.loc = loc
-        cls.scale = scale 
+        cls.scale = scale
         return cls(n)
 
     @property
@@ -247,7 +247,7 @@ class Laplace(Dataset):
     @classmethod
     def from_params(cls, loc, scale, n):
         cls.loc = loc
-        cls.scale = scale 
+        cls.scale = scale
         return cls(n)
 
     @property
@@ -282,7 +282,7 @@ class Mixed(Dataset):
 
     mean = 0.0
     sigma = 0.25
-    scale_factor = 0.1 
+    scale_factor = 0.1
 
     loc = 10.0
     scale = 0.5
