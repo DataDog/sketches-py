@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 
-from store import Store
+from .store import Store
 
 
 DEFAULT_ALPHA = 0.01
