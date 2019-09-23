@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 
-from store import Store
+from .store import Store
 
 
 DEFAULT_ALPHA = 0.01
@@ -27,7 +27,7 @@ class DDSketch(object):
             alpha = DEFAULT_ALPHA
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
-        if min_value < 0:
+        if min_value is None or min_value < 0:
             min_value = DEFAULT_MIN_VALUE
 
         self.gamma = 1 + 2*alpha/(1-alpha)
