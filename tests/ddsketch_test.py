@@ -35,7 +35,7 @@ def evaluate_sketch_accuracy(sketch, data, eps):
         sketch_q = sketch.quantile(q)
         data_q = data.quantile(q)
         err = abs(sketch_q - data_q)
-        np.testing.assert_equal(err - eps*abs(data_q) <= 0, True)
+        np.testing.assert_equal(err - eps*abs(data_q) <= 1e-15, True)
     np.testing.assert_equal(sketch.num_values, n)
     np.testing.assert_almost_equal(sketch.sum, data.sum)
     np.testing.assert_almost_equal(sketch.avg, data.avg)

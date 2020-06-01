@@ -63,8 +63,8 @@ class Store(object):
             while min_key > key:
                 min_key -= GROW_LEFT_BY
 
-        self.bins[:0] = [0]*(self.min_key - key)
-        self.min_key = key
+        self.bins[:0] = [0]*(self.min_key - min_key)
+        self.min_key = min_key
 
     def grow_right(self, key):
         if self.max_key > key:
