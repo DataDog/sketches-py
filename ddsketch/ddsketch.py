@@ -137,3 +137,34 @@ class DDSketch(object):
         self._max = sketch._max
         self._count = sketch._count
         self._sum = sketch._sum
+
+    def hist(self, buckets_lte):
+        """ Generate a cumulative histogram based on a list of bucket edges
+            where each bucket contains the sum of values less than or equal
+            to the specified edge value. This should give a reasonable conversion
+            for fixed bucket histograms like Prometheus
+        """
+        # Ensure the buckets are sorted
+        buckets_lte = sorted(buckets_lte)
+        hist = {}
+
+        # cumsum tracks the cumulative summation of values seen so far
+        cumsum, i = 0
+
+        # generate the list of keys contained in this sketch
+        keys = range(self.min_key, self.max_key+1)
+
+        # traverse the buckets in order
+        for b in buckets_lte:
+            # convert the bucket edge to a key
+            k = self.get_key(b)
+
+            # sum the values in sketch bins less than or equal to the 
+            # bucket key
+            while k <= keys[i]:
+                cumsum += self.store.bins[i]
+                i += 1
+
+            # set the current cumulative sum as the value for the bucket edge
+            hist[b] = cumsum
+        return hist
