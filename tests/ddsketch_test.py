@@ -12,8 +12,21 @@ from ddsketch.ddsketch import DDSketch
 
 test_quantiles = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
 test_sizes = [3, 5, 10, 100, 1000]
-datasets = [UniformForward, UniformBackward, UniformZoomIn, UniformZoomOut, UniformSqrt,
-            Constant, Exponential, Lognormal, Normal, Laplace, Bimodal, Trimodal, Mixed]
+datasets = [
+    UniformForward,
+    UniformBackward,
+    UniformZoomIn,
+    UniformZoomOut,
+    UniformSqrt,
+    Constant,
+    Exponential,
+    Lognormal,
+    Normal,
+    Laplace,
+    Bimodal,
+    Trimodal,
+    Mixed,
+]
 
 test_alpha = 0.05
 test_bin_limit = 1024
@@ -29,16 +42,18 @@ def test_distributions():
                 sketch.add(v)
             evaluate_sketch_accuracy(sketch, data, test_alpha)
 
+
 def evaluate_sketch_accuracy(sketch, data, eps):
     n = data.size
     for q in test_quantiles:
         sketch_q = sketch.quantile(q)
         data_q = data.quantile(q)
         err = abs(sketch_q - data_q)
-        np.testing.assert_equal(err - eps*abs(data_q) <= 1e-15, True)
+        np.testing.assert_equal(err - eps * abs(data_q) <= 1e-15, True)
     np.testing.assert_equal(sketch.num_values, n)
     np.testing.assert_almost_equal(sketch.sum, data.sum)
     np.testing.assert_almost_equal(sketch.avg, data.avg)
+
 
 def test_merge_equal():
     parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
@@ -53,6 +68,7 @@ def test_merge_equal():
                 d.add(v)
             s.merge(sketch)
         evaluate_sketch_accuracy(s, d, test_alpha)
+
 
 def test_merge_unequal():
     ntests = 20
@@ -69,6 +85,7 @@ def test_merge_unequal():
             s1.merge(s2)
             evaluate_sketch_accuracy(s1, d, test_alpha)
 
+
 def test_merge_mixed():
     ntests = 20
     datasets = [Normal, Exponential, Laplace, Bimodal]
@@ -84,9 +101,9 @@ def test_merge_mixed():
             s.merge(sketch)
         evaluate_sketch_accuracy(s, d, test_alpha)
 
+
 def test_consistent_merge():
-    """ Test that merge() calls do not modify the argument sketch.
-    """
+    """Test that merge() calls do not modify the argument sketch."""
     s1 = DDSketch(test_alpha, test_bin_limit, test_min_value)
     s2 = DDSketch(test_alpha, test_bin_limit, test_min_value)
     d = Normal(100)
@@ -100,18 +117,30 @@ def test_consistent_merge():
     for v in d.data:
         s2.add(v)
 
-    s2_summary = [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values]
+    s2_summary = [s2.quantile(q) for q in test_quantiles] + [
+        s2.sum,
+        s2.avg,
+        s2.num_values,
+    ]
     s1.merge(s2)
     d = Normal(10)
     for v in d.data:
         s1.add(v)
     # changes to s1 does not affect s2 after merge
-    s2_summary = [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values]
-    np.testing.assert_almost_equal(s2_summary,
-        [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values])
+    s2_summary = [s2.quantile(q) for q in test_quantiles] + [
+        s2.sum,
+        s2.avg,
+        s2.num_values,
+    ]
+    np.testing.assert_almost_equal(
+        s2_summary,
+        [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
+    )
 
     s3 = DDSketch(test_alpha, test_bin_limit, test_min_value)
     s3.merge(s2)
     # merging to an empty sketch does not change s2
-    np.testing.assert_almost_equal(s2_summary,
-        [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values])
+    np.testing.assert_almost_equal(
+        s2_summary,
+        [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
+    )

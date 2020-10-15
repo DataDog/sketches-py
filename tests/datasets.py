@@ -17,7 +17,7 @@ class Dataset(object):
         self.data = self.populate()
 
     def __str__(self):
-        return '{}_{}'.format(self.name, self.size)
+        return "{}_{}".format(self.name, self.size)
 
     def __len__(self):
         return self.size
@@ -31,8 +31,8 @@ class Dataset(object):
 
     def quantile(self, q):
         self.data.sort()
-        rank = int(q*(self.size - 1) + 1)
-        return self.data[rank-1]
+        rank = int(q * (self.size - 1) + 1)
+        return self.data[rank - 1]
 
     @property
     def sum(self):
@@ -52,10 +52,9 @@ class Dataset(object):
 
 
 class EmptyDataset(Dataset):
-
     @property
     def name(self):
-        return 'no_name'
+        return "no_name"
 
     def populate(self):
         return []
@@ -70,10 +69,9 @@ class EmptyDataset(Dataset):
 
 
 class UniformForward(Dataset):
-
     @property
     def name(self):
-        return 'uniform_forward'
+        return "uniform_forward"
 
     def populate(self):
         return list(self.generate())
@@ -84,10 +82,9 @@ class UniformForward(Dataset):
 
 
 class UniformBackward(Dataset):
-
     @property
     def name(self):
-        return 'uniform_backward'
+        return "uniform_backward"
 
     def populate(self):
         return list(self.generate())
@@ -98,60 +95,57 @@ class UniformBackward(Dataset):
 
 
 class UniformZoomIn(Dataset):
-
     @property
     def name(self):
-        return 'uniform_zoomin'
+        return "uniform_zoomin"
 
     def populate(self):
         return list(self.generate())
 
     def generate(self):
         if self.size % 2 == 1:
-            for item in xrange(self.size//2):
+            for item in xrange(self.size // 2):
                 yield item
                 yield self.size - item - 1
-            yield self.size//2
+            yield self.size // 2
         else:
-            for item in xrange(self.size//2):
+            for item in xrange(self.size // 2):
                 yield item
                 yield self.size - item - 1
 
 
 class UniformZoomOut(Dataset):
-
     @property
     def name(self):
-        return 'uniform_zoomout'
+        return "uniform_zoomout"
 
     def populate(self):
         return list(self.generate())
 
     def generate(self):
         if self.size % 2 == 1:
-            yield self.size//2
-            half = int(np.ceil(self.size/2))
-            for item in xrange(1, half+1):
+            yield self.size // 2
+            half = int(np.ceil(self.size / 2))
+            for item in xrange(1, half + 1):
                 yield half + item
                 yield half - item
         else:
-            half = int(np.ceil(self.size/2)) - 0.5
-            for item in xrange(0, int(half+0.5)):
+            half = int(np.ceil(self.size / 2)) - 0.5
+            for item in xrange(0, int(half + 0.5)):
                 yield int(half + item + 0.5)
                 yield int(half - item - 0.5)
 
 
 class UniformSqrt(Dataset):
-
     @property
     def name(self):
-        return 'uniform_sqrt'
+        return "uniform_sqrt"
 
     def populate(self):
         return list(self.generate())
 
     def generate(self):
-        t = int(np.sqrt(2*self.size))
+        t = int(np.sqrt(2 * self.size))
         item = 0
         initial_item = 0
         initial_skip = 1
@@ -160,13 +154,13 @@ class UniformSqrt(Dataset):
         while emitted < self.size:
             item = initial_item
             skip = initial_skip
-            for j in xrange(t-i):
+            for j in xrange(t - i):
                 if item < self.size:
                     yield item
                     emitted += 1
                 item += skip
                 skip += 1
-            if t-i > 1:
+            if t - i > 1:
                 initial_skip += 1
                 initial_item += initial_skip
                 i += 1
@@ -180,7 +174,7 @@ class Constant(Dataset):
 
     @property
     def name(self):
-        return 'constant'
+        return "constant"
 
     def populate(self):
         return [self.constant] * self.size
@@ -197,7 +191,7 @@ class Exponential(Dataset):
 
     @property
     def name(self):
-        return 'exponential'
+        return "exponential"
 
     def populate(self):
         return np.random.exponential(scale=self.scale, size=self.size)
@@ -214,7 +208,7 @@ class Lognormal(Dataset):
 
     @property
     def name(self):
-        return 'lognormal'
+        return "lognormal"
 
     def populate(self):
         return np.random.lognormal(size=self.size) / self.scale
@@ -233,10 +227,10 @@ class Normal(Dataset):
 
     @property
     def name(self):
-        return 'normal'
+        return "normal"
 
     def populate(self):
-        return np.random.normal(loc=self.loc, scale = self.scale, size=self.size)
+        return np.random.normal(loc=self.loc, scale=self.scale, size=self.size)
 
 
 class Laplace(Dataset):
@@ -252,7 +246,7 @@ class Laplace(Dataset):
 
     @property
     def name(self):
-        return 'laplace'
+        return "laplace"
 
     def populate(self):
         return np.random.laplace(loc=self.loc, scale=self.scale, size=self.size)
@@ -266,7 +260,7 @@ class Bimodal(Dataset):
 
     @property
     def name(self):
-        return 'bimodal'
+        return "bimodal"
 
     def populate(self):
         return [self.generate().next() for _ in xrange(int(self.size))]
@@ -295,14 +289,14 @@ class Mixed(Dataset):
 
     @property
     def name(self):
-        return 'mixed'
+        return "mixed"
 
     def populate(self):
         return [self.generate().next() for _ in xrange(int(self.size))]
 
     def generate(self):
-        if np.random.random()<  self.ratio:
-            yield self.scale_factor*np.random.lognormal(self.mean, self.sigma)
+        if np.random.random() < self.ratio:
+            yield self.scale_factor * np.random.lognormal(self.mean, self.sigma)
         else:
             yield np.random.normal(self.loc, self.scale)
 
@@ -316,15 +310,15 @@ class Trimodal(Dataset):
 
     @property
     def name(self):
-        return 'trimodal'
+        return "trimodal"
 
     def populate(self):
         return [self.generate().next() for _ in xrange(int(self.size))]
 
     def generate(self):
-        if np.random.random() > 2.0/3.0:
+        if np.random.random() > 2.0 / 3.0:
             yield np.random.laplace(self.right_loc)
-        elif np.random.random() > 1.0/3.0:
+        elif np.random.random() > 1.0 / 3.0:
             yield np.random.normal(self.left_loc, self.left_std)
         else:
             yield np.random.exponential(scale=self.exp_scale)

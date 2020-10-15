@@ -14,18 +14,16 @@ class UnequalEpsilonException(Exception):
 
 
 class Entry(object):
-
     def __init__(self, val, g, delta):
         self.val = val
         self.g = g
         self.delta = delta
 
     def __repr__(self):
-        return 'Entry(val={}, g={}, delta={})'.format(self.val, self.g, self.delta)
+        return "Entry(val={}, g={}, delta={})".format(self.val, self.g, self.delta)
 
 
 class GKArray(object):
-
     def __init__(self, eps=None):
         if eps is None or eps <= 0 or eps >= 1:
             self.eps = DEFAULT_EPS
@@ -33,18 +31,26 @@ class GKArray(object):
             self.eps = eps
         self.entries = []
         self.incoming = []
-        self._min = float('+inf')
-        self._max = float('-inf')
+        self._min = float("+inf")
+        self._max = float("-inf")
         self._count = 0
         self._sum = 0
 
     def __repr__(self):
-        return "entries: {}, incoming: {}, count: {}, min: {}, max: {}, sum: {}\n".format(
-            self.entries, self.incoming, self._count, self._min, self._max, self._sum)
+        return (
+            "entries: {}, incoming: {}, count: {}, min: {}, max: {}, sum: {}\n".format(
+                self.entries,
+                self.incoming,
+                self._count,
+                self._min,
+                self._max,
+                self._sum,
+            )
+        )
 
     @property
     def name(self):
-        return 'GKArray'
+        return "GKArray"
 
     @property
     def num_values(self):
@@ -52,7 +58,7 @@ class GKArray(object):
 
     @property
     def avg(self):
-        return float(self._sum)/self._count
+        return float(self._sum) / self._count
 
     @property
     def sum(self):
@@ -64,8 +70,7 @@ class GKArray(object):
         return len(self.entries)
 
     def add(self, val):
-        """ Add a value to the sketch.
-        """
+        """Add a value to the sketch."""
         self.incoming.append(val)
         self._count += 1
         self._sum += val
@@ -73,18 +78,20 @@ class GKArray(object):
             self._min = val
         if val > self._max:
             self._max = val
-        if self._count % (int(1.0/self.eps) + 1) == 0:
+        if self._count % (int(1.0 / self.eps) + 1) == 0:
             self.merge_compress()
 
     def merge_compress(self, entries=[]):
-        """ Merge the given entry list into self.entries as well as compressing any values in
+        """Merge the given entry list into self.entries as well as compressing any values in
         self.incoming buffer.
 
         Parameters:
             entries: list of Entry
         """
-        removal_threshold = np.floor(2.0*self.eps*(self._count - 1))
-        incoming = [Entry(val, 1, 0) for val in self.incoming] + [Entry(e.val, e.g, e.delta) for e in entries]
+        removal_threshold = np.floor(2.0 * self.eps * (self._count - 1))
+        incoming = [Entry(val, 1, 0) for val in self.incoming] + [
+            Entry(e.val, e.g, e.delta) for e in entries
+        ]
         incoming = sorted(incoming, key=lambda x: x.val)
 
         merged = []
@@ -92,31 +99,49 @@ class GKArray(object):
         while i < len(incoming) or j < len(self.entries):
             if i == len(incoming):
                 # done with incoming; now only considering entries
-                if j + 1 < len(self.entries) and\
-                   self.entries[j].g + self.entries[j+1].g + self.entries[j+1].delta <= removal_threshold:
-                    self.entries[j+1].g += self.entries[j].g
+                if (
+                    j + 1 < len(self.entries)
+                    and self.entries[j].g
+                    + self.entries[j + 1].g
+                    + self.entries[j + 1].delta
+                    <= removal_threshold
+                ):
+                    self.entries[j + 1].g += self.entries[j].g
                 else:
                     merged.append(self.entries[j])
                 j += 1
             elif j == len(self.entries):
                 # done with entries; now only considering incoming
-                if i+1 < len(incoming) and\
-                   incoming[i].g + incoming[i+1].g + incoming[i+1].delta <= removal_threshold:
-                    incoming[i+1].g += incoming[i].g
+                if (
+                    i + 1 < len(incoming)
+                    and incoming[i].g + incoming[i + 1].g + incoming[i + 1].delta
+                    <= removal_threshold
+                ):
+                    incoming[i + 1].g += incoming[i].g
                 else:
                     merged.append(incoming[i])
                 i += 1
             elif incoming[i].val < self.entries[j].val:
-                if incoming[i].g + self.entries[j].g + self.entries[j].delta <= removal_threshold:
+                if (
+                    incoming[i].g + self.entries[j].g + self.entries[j].delta
+                    <= removal_threshold
+                ):
                     self.entries[j].g += incoming[i].g
                 else:
-                    incoming[i].delta = self.entries[j].g + self.entries[j].delta - incoming[i].g
+                    incoming[i].delta = (
+                        self.entries[j].g + self.entries[j].delta - incoming[i].g
+                    )
                     merged.append(incoming[i])
                 i += 1
             else:
-                if j + 1 < len(self.entries) and\
-                   self.entries[j].g + self.entries[j+1].g + self.entries[j+1].delta <= removal_threshold:
-                    self.entries[j+1].g += self.entries[j].g
+                if (
+                    j + 1 < len(self.entries)
+                    and self.entries[j].g
+                    + self.entries[j + 1].g
+                    + self.entries[j + 1].delta
+                    <= removal_threshold
+                ):
+                    self.entries[j + 1].g += self.entries[j].g
                 else:
                     merged.append(self.entries[j])
                 j += 1
@@ -125,14 +150,16 @@ class GKArray(object):
         self.incoming = []
 
     def merge(self, sketch):
-        """ Merge another GKArray into the current. The two sketches should have the same
+        """Merge another GKArray into the current. The two sketches should have the same
         epsilon value.
 
         Parameters:
             other: GKArray
         """
         if self.eps != sketch.eps:
-            raise UnequalEpsilonException("Cannot merge two GKArrays with different epsilon values")
+            raise UnequalEpsilonException(
+                "Cannot merge two GKArrays with different epsilon values"
+            )
 
         if sketch._count == 0:
             return
@@ -147,13 +174,17 @@ class GKArray(object):
             return
 
         entries = []
-        spread = int(sketch.eps*(sketch._count - 1))
+        spread = int(sketch.eps * (sketch._count - 1))
         sketch.merge_compress()
         g = sketch.entries[0].g + sketch.entries[0].delta - spread - 1
         if g > 0:
             entries.append(Entry(sketch._min, g, 0))
-        for i in range(len(sketch.entries)-1):
-            g = sketch.entries[i+1].g + sketch.entries[i+1].delta - sketch.entries[i].delta
+        for i in range(len(sketch.entries) - 1):
+            g = (
+                sketch.entries[i + 1].g
+                + sketch.entries[i + 1].delta
+                - sketch.entries[i].delta
+            )
             if g > 0:
                 entries.append(Entry(sketch.entries[i].val, g, 0))
         g = spread + 1 - sketch.entries[len(sketch.entries) - 1].delta
@@ -168,7 +199,7 @@ class GKArray(object):
         self.merge_compress(entries)
 
     def quantile(self, q):
-        """ Return an epsilon-approximate element at quantile q.
+        """Return an epsilon-approximate element at quantile q.
 
         Parameters:
             q: quantile to query for
@@ -180,16 +211,16 @@ class GKArray(object):
         if len(self.incoming) > 0:
             self.merge_compress()
 
-        rank = int(q*(self._count - 1) + 1)
-        spread = int(self.eps*(self._count - 1))
+        rank = int(q * (self._count - 1) + 1)
+        spread = int(self.eps * (self._count - 1))
         g_sum = 0.0
         i = 0
         while i < len(self.entries):
             g_sum += self.entries[i].g
             if g_sum + self.entries[i].delta > rank + spread:
-                    break
+                break
             i += 1
         if i == 0:
             return self._min
 
-        return self.entries[i-1].val
+        return self.entries[i - 1].val

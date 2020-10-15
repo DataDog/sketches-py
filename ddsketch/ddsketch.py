@@ -20,7 +20,6 @@ class UnequalSketchParametersException(Exception):
 
 
 class DDSketch(object):
-
     def __init__(self, alpha=None, bin_limit=None, min_value=None):
         # Make sure the parameters are valid
         if alpha is None or (alpha <= 0 or alpha >= 1):
@@ -30,24 +29,25 @@ class DDSketch(object):
         if min_value is None or min_value < 0:
             min_value = DEFAULT_MIN_VALUE
 
-        self.gamma = 1 + 2*alpha/(1-alpha)
-        self.gamma_ln = math.log1p(2*alpha/(1-alpha))
+        self.gamma = 1 + 2 * alpha / (1 - alpha)
+        self.gamma_ln = math.log1p(2 * alpha / (1 - alpha))
         self.min_value = min_value
-        self.offset = -int(math.ceil(math.log(min_value)/self.gamma_ln)) + 1
+        self.offset = -int(math.ceil(math.log(min_value) / self.gamma_ln)) + 1
 
         self.store = Store(bin_limit)
-        self._min = float('+inf')
-        self._max = float('-inf')
+        self._min = float("+inf")
+        self._max = float("-inf")
         self._count = 0
         self._sum = 0
 
     def __repr__(self):
         return "store: {{{}}}, count: {}, sum: {}, min: {}, max: {}".format(
-            self.store, self._count, self._sum, self._min, self._max)
+            self.store, self._count, self._sum, self._min, self._max
+        )
 
     @property
     def name(self):
-        return 'DDSketch'
+        return "DDSketch"
 
     @property
     def num_values(self):
@@ -55,7 +55,7 @@ class DDSketch(object):
 
     @property
     def avg(self):
-        return float(self._sum)/self._count
+        return float(self._sum) / self._count
 
     @property
     def sum(self):
@@ -63,15 +63,14 @@ class DDSketch(object):
 
     def get_key(self, val):
         if val < -self.min_value:
-            return -int(math.ceil(math.log(-val)/self.gamma_ln)) - self.offset
+            return -int(math.ceil(math.log(-val) / self.gamma_ln)) - self.offset
         elif val > self.min_value:
-            return int(math.ceil(math.log(val)/self.gamma_ln)) + self.offset
+            return int(math.ceil(math.log(val) / self.gamma_ln)) + self.offset
         else:
             return 0
 
     def add(self, val):
-        """ Add a value to the sketch.
-        """
+        """Add a value to the sketch."""
         key = self.get_key(val)
         self.store.add(key)
 
@@ -91,22 +90,24 @@ class DDSketch(object):
         if q == 1:
             return self._max
 
-        rank = int(q*(self._count - 1) + 1)
+        rank = int(q * (self._count - 1) + 1)
         key = self.store.key_at_rank(rank)
         if key < 0:
-                    key += self.offset
-                    quantile = -2*pow(self.gamma, -key)/(1 + self.gamma)
+            key += self.offset
+            quantile = -2 * pow(self.gamma, -key) / (1 + self.gamma)
         elif key > 0:
-                    key -= self.offset
-                    quantile = 2*pow(self.gamma, key)/(1 + self.gamma)
+            key -= self.offset
+            quantile = 2 * pow(self.gamma, key) / (1 + self.gamma)
         else:
             quantile = 0
 
-        return  max(quantile, self._min)
+        return max(quantile, self._min)
 
     def merge(self, sketch):
         if not self.mergeable(sketch):
-            raise UnequalSketchParametersException("Cannot merge two DDSketches with different parameters")
+            raise UnequalSketchParametersException(
+                "Cannot merge two DDSketches with different parameters"
+            )
 
         if sketch._count == 0:
             return
@@ -127,8 +128,7 @@ class DDSketch(object):
             self._max = sketch._max
 
     def mergeable(self, other):
-        """ Two sketches can be merged only if their gamma and min_values are equal.
-        """
+        """Two sketches can be merged only if their gamma and min_values are equal."""
         return self.gamma == other.gamma and self.min_value == other.min_value
 
     def copy(self, sketch):
