@@ -3,15 +3,12 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
-import abc
+from abc import ABC, abstractmethod, abstractproperty
 
 import numpy as np
 
 
-class Dataset(object):
-
-    __metaclass__ = abc.ABCMeta
-
+class Dataset(ABC):
     def __init__(self, size):
         self.size = int(size)
         self.data = self.populate()
@@ -42,11 +39,11 @@ class Dataset(object):
     def avg(self):
         return np.mean(self.data)
 
-    @abc.abstractproperty
+    @abstractproperty
     def name(self):
         """name of dataset"""
 
-    @abc.abstractmethod
+    @abstractmethod
     def populate(self):
         """populate self.data with self.size values"""
 
@@ -77,7 +74,7 @@ class UniformForward(Dataset):
         return list(self.generate())
 
     def generate(self):
-        for x in xrange(self.size):
+        for x in range(self.size):
             yield x
 
 
@@ -90,7 +87,7 @@ class UniformBackward(Dataset):
         return list(self.generate())
 
     def generate(self):
-        for x in xrange(self.size, 0, -1):
+        for x in range(self.size, 0, -1):
             yield x
 
 
@@ -104,12 +101,12 @@ class UniformZoomIn(Dataset):
 
     def generate(self):
         if self.size % 2 == 1:
-            for item in xrange(self.size // 2):
+            for item in range(self.size // 2):
                 yield item
                 yield self.size - item - 1
             yield self.size // 2
         else:
-            for item in xrange(self.size // 2):
+            for item in range(self.size // 2):
                 yield item
                 yield self.size - item - 1
 
@@ -125,13 +122,13 @@ class UniformZoomOut(Dataset):
     def generate(self):
         if self.size % 2 == 1:
             yield self.size // 2
-            half = int(np.ceil(self.size / 2))
-            for item in xrange(1, half + 1):
+            half = int(np.floor(self.size / 2))
+            for item in range(1, half + 1):
                 yield half + item
                 yield half - item
         else:
             half = int(np.ceil(self.size / 2)) - 0.5
-            for item in xrange(0, int(half + 0.5)):
+            for item in range(0, int(half + 0.5)):
                 yield int(half + item + 0.5)
                 yield int(half - item - 0.5)
 
@@ -154,7 +151,7 @@ class UniformSqrt(Dataset):
         while emitted < self.size:
             item = initial_item
             skip = initial_skip
-            for j in xrange(t - i):
+            for j in range(t - i):
                 if item < self.size:
                     yield item
                     emitted += 1
@@ -263,7 +260,7 @@ class Bimodal(Dataset):
         return "bimodal"
 
     def populate(self):
-        return [self.generate().next() for _ in xrange(int(self.size))]
+        return [next(self.generate()) for _ in range(int(self.size))]
 
     def generate(self):
         if np.random.random() > 0.5:
@@ -292,7 +289,7 @@ class Mixed(Dataset):
         return "mixed"
 
     def populate(self):
-        return [self.generate().next() for _ in xrange(int(self.size))]
+        return [next(self.generate()) for _ in range(int(self.size))]
 
     def generate(self):
         if np.random.random() < self.ratio:
@@ -313,7 +310,7 @@ class Trimodal(Dataset):
         return "trimodal"
 
     def populate(self):
-        return [self.generate().next() for _ in xrange(int(self.size))]
+        return [next(self.generate()) for _ in range(int(self.size))]
 
     def generate(self):
         if np.random.random() > 2.0 / 3.0:
