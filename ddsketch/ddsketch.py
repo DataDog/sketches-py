@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 
-from .store import Store
+from .store import CollapsingLowestDenseStore
 
 
 DEFAULT_ALPHA = 0.01
@@ -19,8 +19,8 @@ class UnequalSketchParametersException(Exception):
     pass
 
 
-class DDSketch(object):
-    def __init__(self, alpha=None, bin_limit=None, min_value=None):
+class BaseDDSketch(object):
+    def __init__(self, alpha=None, bin_limit=None, min_value=None, store=None):
         # Make sure the parameters are valid
         if alpha is None or (alpha <= 0 or alpha >= 1):
             alpha = DEFAULT_ALPHA
@@ -28,13 +28,17 @@ class DDSketch(object):
             bin_limit = DEFAULT_BIN_LIMIT
         if min_value is None or min_value < 0:
             min_value = DEFAULT_MIN_VALUE
+        if store is None:
+            self.store = CollapsingLowestDenseStore(bin_limit)
+        else:
+            self.store = store
 
-        self.gamma = 1 + 2 * alpha / (1 - alpha)
-        self.gamma_ln = math.log1p(2 * alpha / (1 - alpha))
+        x = 2 * alpha / (1 - alpha)
+        self.gamma = 1 + x
+        self.gamma_ln = math.log1p(x)
         self.min_value = min_value
         self.offset = -int(math.ceil(math.log(min_value) / self.gamma_ln)) + 1
 
-        self.store = Store(bin_limit)
         self._min = float("+inf")
         self._max = float("-inf")
         self._count = 0
@@ -137,3 +141,22 @@ class DDSketch(object):
         self._max = sketch._max
         self._count = sketch._count
         self._sum = sketch._sum
+
+
+class DDSketch(BaseDDSketch):
+    """The default implementation of a memory-optimal instance of BaseDDSketch, with
+    optimized memory usage, at the cost of lower ingestion speed, using a
+    limited number of bins. When the maximum number of bins is reached, bins
+    with lowest indices are collapsed, which causes the relative accuracy to be
+    lost on lowest quantiles. For the default bin limit, collapsing is unlikely
+    to occur unless the data is distributed with tails heavier than any
+    subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    """
+
+    def __init__(self, alpha=None, bin_limit=None, min_value=None):
+        if bin_limit is None or bin_limit < 0:
+            bin_limit = DEFAULT_BIN_LIMIT
+        store = CollapsingLowestDenseStore(bin_limit)
+        super().__init__(
+            alpha=alpha, bin_limit=bin_limit, min_value=min_value, store=store
+        )
