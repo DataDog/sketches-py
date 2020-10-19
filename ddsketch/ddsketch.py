@@ -10,7 +10,7 @@ import numpy as np
 from .store import CollapsingLowestDenseStore
 
 
-DEFAULT_ALPHA = 0.01
+DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
 DEFAULT_MIN_VALUE = 1.0e-9
 
@@ -20,10 +20,10 @@ class UnequalSketchParametersException(Exception):
 
 
 class BaseDDSketch(object):
-    def __init__(self, alpha=None, bin_limit=None, min_value=None, store=None):
+    def __init__(self, relative_accuracy=None, bin_limit=None, min_value=None, store=None):
         # Make sure the parameters are valid
-        if alpha is None or (alpha <= 0 or alpha >= 1):
-            alpha = DEFAULT_ALPHA
+        if relative_accuracy is None or (relative_accuracy <= 0 or relative_accuracy >= 1):
+            relative_accuracy = DEFAULT_REL_ACC
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
         if min_value is None or min_value < 0:
@@ -33,7 +33,7 @@ class BaseDDSketch(object):
         else:
             self.store = store
 
-        x = 2 * alpha / (1 - alpha)
+        x = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + x
         self.gamma_ln = math.log1p(x)
         self.min_value = min_value
@@ -153,10 +153,10 @@ class DDSketch(BaseDDSketch):
     subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
-    def __init__(self, alpha=None, bin_limit=None, min_value=None):
+    def __init__(self, relative_accuracy=None, bin_limit=None, min_value=None):
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
         store = CollapsingLowestDenseStore(bin_limit)
         super().__init__(
-            alpha=alpha, bin_limit=bin_limit, min_value=min_value, store=store
+            relative_accuracy=relative_accuracy, bin_limit=bin_limit, min_value=min_value, store=store
         )

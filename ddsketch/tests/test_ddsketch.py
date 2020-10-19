@@ -29,7 +29,7 @@ datasets = [
     Mixed,
 ]
 
-test_alpha = 0.05
+test_rel_acc = 0.05
 test_bin_limit = 1024
 test_min_value = 1.0e-9
 
@@ -51,59 +51,59 @@ class TestDDSketch(unittest.TestCase):
         for dataset in datasets:
             for n in test_sizes:
                 data = dataset(n)
-                sketch = DDSketch(test_alpha, test_bin_limit, test_min_value)
+                sketch = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
                 for v in data.data:
                     sketch.add(v)
-                _evaluate_sketch_accuracy(sketch, data, test_alpha)
+                _evaluate_sketch_accuracy(sketch, data, test_rel_acc)
 
     def test_merge_equal(self):
         parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
         for n in test_sizes:
             d = EmptyDataset(0)
-            s = DDSketch(test_alpha, test_bin_limit, test_min_value)
+            s = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
             for params in parameters:
                 generator = Normal.from_params(params[0], params[1], n)
-                sketch = DDSketch(test_alpha, test_bin_limit, test_min_value)
+                sketch = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
                 for v in generator.data:
                     sketch.add(v)
                     d.add(v)
                 s.merge(sketch)
-            _evaluate_sketch_accuracy(s, d, test_alpha)
+            _evaluate_sketch_accuracy(s, d, test_rel_acc)
 
     def test_merge_unequal(self):
         ntests = 20
         for i in range(ntests):
             for n in test_sizes:
                 d = Lognormal(n)
-                s1 = DDSketch(test_alpha, test_bin_limit, test_min_value)
-                s2 = DDSketch(test_alpha, test_bin_limit, test_min_value)
+                s1 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+                s2 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
                 for v in d.data:
                     if np.random.random() > 0.7:
                         s1.add(v)
                     else:
                         s2.add(v)
                 s1.merge(s2)
-                _evaluate_sketch_accuracy(s1, d, test_alpha)
+                _evaluate_sketch_accuracy(s1, d, test_rel_acc)
 
     def test_merge_mixed(self):
         ntests = 20
         datasets = [Normal, Exponential, Laplace, Bimodal]
         for i in range(ntests):
             d = EmptyDataset(0)
-            s = DDSketch(test_alpha, test_bin_limit, test_min_value)
+            s = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
             for dataset in datasets:
                 generator = dataset(np.random.randint(0, 500))
-                sketch = DDSketch(test_alpha, test_bin_limit, test_min_value)
+                sketch = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
                 for v in generator.data:
                     sketch.add(v)
                     d.add(v)
                 s.merge(sketch)
-            _evaluate_sketch_accuracy(s, d, test_alpha)
+            _evaluate_sketch_accuracy(s, d, test_rel_acc)
 
     def test_consistent_merge(self):
         """Test that merge() calls do not modify the argument sketch."""
-        s1 = DDSketch(test_alpha, test_bin_limit, test_min_value)
-        s2 = DDSketch(test_alpha, test_bin_limit, test_min_value)
+        s1 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+        s2 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
         d = Normal(100)
         for v in d.data:
             s1.add(v)
@@ -135,7 +135,7 @@ class TestDDSketch(unittest.TestCase):
             [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
         )
 
-        s3 = DDSketch(test_alpha, test_bin_limit, test_min_value)
+        s3 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
         s3.merge(s2)
         # merging to an empty sketch does not change s2
         np.testing.assert_almost_equal(
