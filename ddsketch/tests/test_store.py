@@ -105,11 +105,10 @@ class TestDenseStore(TestStore, unittest.TestCase):
                     self.assertEqual(counter[i + store.min_key], b)
 
     def _test_store(self, values):
-        for max_bins in TEST_MAX_BINS:
-            store = DenseStore()
-            for v in values:
-                store.add(v)
-            self._test_values(store, values)
+        store = DenseStore()
+        for v in values:
+            store.add(v)
+        self._test_values(store, values)
 
     def _test_merging(self, list_values):
         for max_bins in TEST_MAX_BINS:
