@@ -9,7 +9,6 @@ import numpy as np
 
 
 INITIAL_NBINS = 128
-GROW_LEFT_BY = 128
 
 
 class Store(ABC):
@@ -77,12 +76,8 @@ class DenseStore(Store):
         if self.min_key < key:
             return
 
-        min_key = self.min_key
-        while min_key > key:
-            min_key -= GROW_LEFT_BY
-
-        self.bins[:0] = [0] * (self.min_key - min_key)
-        self.min_key = min_key
+        self.bins[:0] = [0] * (self.min_key - key)
+        self.min_key = key
 
     def _grow_right(self, key):
         if self.max_key > key:
@@ -149,9 +144,7 @@ class CollapsingLowestDenseStore(DenseStore):
         else:
             min_key = self.min_key
             while min_key > key:
-                min_key -= min(
-                    GROW_LEFT_BY, self.max_bins - (self.max_key - self.min_key) - 1
-                )
+                min_key -= self.max_bins - (self.max_key - self.min_key) - 1
 
         self.bins[:0] = [0] * (self.min_key - min_key)
         self.min_key = min_key
