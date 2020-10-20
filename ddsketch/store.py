@@ -164,7 +164,7 @@ class CollapsingLowestDenseStore(DenseStore):
             return
 
         if key - self.max_key >= self.max_bins:
-            # the new key if over max_bins to the right; put everything in the first bin
+            # the new key is over max_bins to the right; put everything in the first bin
             self.bins = [0] * self.max_bins
             self.max_key = key
             self.min_key = key - self.max_bins + 1
