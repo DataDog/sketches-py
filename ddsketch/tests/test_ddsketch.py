@@ -3,12 +3,26 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
-from collections import defaultdict, namedtuple
 import unittest
 
 import numpy as np
 
-from datasets import *
+from datasets import (
+    Bimodal,
+    Constant,
+    EmptyDataset,
+    Exponential,
+    Lognormal,
+    Laplace,
+    Mixed,
+    Normal,
+    Trimodal,
+    UniformBackward,
+    UniformForward,
+    UniformSqrt,
+    UniformZoomIn,
+    UniformZoomOut,
+)
 from ddsketch.ddsketch import DDSketch
 
 test_quantiles = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]

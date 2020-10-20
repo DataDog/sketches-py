@@ -4,12 +4,19 @@
 # Copyright 2020 Datadog, Inc.
 
 from abc import ABC, abstractmethod
+import math
 
 import numpy as np
 
-
+"""
+We start with 128 bins and grow the store in chunks of 128 unless specified otherwise.
+"""
 INITIAL_NBINS = 128
-GROW_LEFT_BY = 128
+CHUNK_SIZE = 128
+
+
+def _grow_by(required_growth):
+    return CHUNK_SIZE * math.ceil((required_growth) / CHUNK_SIZE)
 
 
 class Store(ABC):
@@ -43,8 +50,8 @@ class DenseStore(Store):
 
     def __repr__(self):
         repr_str = "{"
-        for i, b in enumerate(self.bins):
-            repr_str += "{}: {}, ".format(i + self.min_key, b)
+        for i, sbin in enumerate(self.bins):
+            repr_str += "{}: {}, ".format(i + self.min_key, sbin)
         repr_str += "}}, minKey: {}, maxKey: {}".format(self.min_key, self.max_key)
         return repr_str
 
@@ -77,9 +84,7 @@ class DenseStore(Store):
         if self.min_key < key:
             return
 
-        min_key = self.min_key
-        while min_key > key:
-            min_key -= GROW_LEFT_BY
+        min_key = self.min_key - _grow_by(self.min_key - key)
 
         self.bins[:0] = [0] * (self.min_key - min_key)
         self.min_key = min_key
@@ -88,8 +93,9 @@ class DenseStore(Store):
         if self.max_key > key:
             return
 
-        self.bins.extend([0] * (key - self.max_key))
-        self.max_key = key
+        max_key = self.max_key + _grow_by(key - self.max_key)
+        self.bins.extend([0] * (max_key - self.max_key))
+        self.max_key = max_key
 
     def merge(self, store):
         if store.count == 0:
@@ -144,14 +150,11 @@ class CollapsingLowestDenseStore(DenseStore):
         if self.min_key < key or len(self.bins) >= self.max_bins:
             return
 
+        min_possible = self.max_key - self.max_bins + 1
         if self.max_key - key >= self.max_bins:
-            min_key = self.max_key - self.max_bins + 1
+            min_key = min_possible
         else:
-            min_key = self.min_key
-            while min_key > key:
-                min_key -= min(
-                    GROW_LEFT_BY, self.max_bins - (self.max_key - self.min_key) - 1
-                )
+            min_key = max(self.min_key - _grow_by(self.min_key - key), min_possible)
 
         self.bins[:0] = [0] * (self.min_key - min_key)
         self.min_key = min_key
@@ -161,11 +164,13 @@ class CollapsingLowestDenseStore(DenseStore):
             return
 
         if key - self.max_key >= self.max_bins:
+            # the new key if over max_bins to the right; put everything in the first bin
             self.bins = [0] * self.max_bins
             self.max_key = key
             self.min_key = key - self.max_bins + 1
             self.bins[0] = self.count
         elif key - self.min_key >= self.max_bins:
+            # the new key requires us to compress on the left
             min_key = key - self.max_bins + 1
             n = np.sum(self.bins[: min_key - self.min_key])
             self.bins = self.bins[min_key - self.min_key :]
@@ -174,8 +179,13 @@ class CollapsingLowestDenseStore(DenseStore):
             self.min_key = min_key
             self.bins[0] += n
         else:
-            self.bins.extend([0] * (key - self.max_key))
-            self.max_key = key
+            # grow to the right
+            max_key = min(
+                self.max_key + _grow_by(key - self.max_key),
+                self.min_key + self.max_bins,
+            )
+            self.bins.extend([0] * (max_key - self.max_key))
+            self.max_key = max_key
 
     def copy(self, store):
         self.bins = store.bins[:]

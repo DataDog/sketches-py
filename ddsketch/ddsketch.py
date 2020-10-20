@@ -20,9 +20,13 @@ class UnequalSketchParametersException(Exception):
 
 
 class BaseDDSketch(object):
-    def __init__(self, relative_accuracy=None, bin_limit=None, min_value=None, store=None):
+    def __init__(
+        self, relative_accuracy=None, bin_limit=None, min_value=None, store=None
+    ):
         # Make sure the parameters are valid
-        if relative_accuracy is None or (relative_accuracy <= 0 or relative_accuracy >= 1):
+        if relative_accuracy is None or (
+            relative_accuracy <= 0 or relative_accuracy >= 1
+        ):
             relative_accuracy = DEFAULT_REL_ACC
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
@@ -158,5 +162,8 @@ class DDSketch(BaseDDSketch):
             bin_limit = DEFAULT_BIN_LIMIT
         store = CollapsingLowestDenseStore(bin_limit)
         super().__init__(
-            relative_accuracy=relative_accuracy, bin_limit=bin_limit, min_value=min_value, store=store
+            relative_accuracy=relative_accuracy,
+            bin_limit=bin_limit,
+            min_value=min_value,
+            store=store,
         )

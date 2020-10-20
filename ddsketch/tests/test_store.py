@@ -1,5 +1,4 @@
 from collections import Counter
-from math import log
 import sys
 import unittest
 
