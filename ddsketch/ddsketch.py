@@ -1,16 +1,16 @@
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
-# Copyright 2018 Datadog, Inc.
+# Copyright 2020 Datadog, Inc.
 
 import math
 
 import numpy as np
 
-from .store import Store
+from .store import CollapsingLowestDenseStore
 
 
-DEFAULT_ALPHA = 0.01
+DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
 DEFAULT_MIN_VALUE = 1.0e-9
 
@@ -19,35 +19,43 @@ class UnequalSketchParametersException(Exception):
     pass
 
 
-class DDSketch(object):
-
-    def __init__(self, alpha=None, bin_limit=None, min_value=None):
+class BaseDDSketch(object):
+    def __init__(
+        self, relative_accuracy=None, bin_limit=None, min_value=None, store=None
+    ):
         # Make sure the parameters are valid
-        if alpha is None or (alpha <= 0 or alpha >= 1):
-            alpha = DEFAULT_ALPHA
+        if relative_accuracy is None or (
+            relative_accuracy <= 0 or relative_accuracy >= 1
+        ):
+            relative_accuracy = DEFAULT_REL_ACC
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
         if min_value is None or min_value < 0:
             min_value = DEFAULT_MIN_VALUE
+        if store is None:
+            self.store = CollapsingLowestDenseStore(bin_limit)
+        else:
+            self.store = store
 
-        self.gamma = 1 + 2*alpha/(1-alpha)
-        self.gamma_ln = math.log1p(2*alpha/(1-alpha))
+        x = 2 * relative_accuracy / (1 - relative_accuracy)
+        self.gamma = 1 + x
+        self.gamma_ln = math.log1p(x)
         self.min_value = min_value
-        self.offset = -int(math.ceil(math.log(min_value)/self.gamma_ln)) + 1
+        self.offset = -int(math.ceil(math.log(min_value) / self.gamma_ln)) + 1
 
-        self.store = Store(bin_limit)
-        self._min = float('+inf')
-        self._max = float('-inf')
+        self._min = float("+inf")
+        self._max = float("-inf")
         self._count = 0
         self._sum = 0
 
     def __repr__(self):
         return "store: {{{}}}, count: {}, sum: {}, min: {}, max: {}".format(
-            self.store, self._count, self._sum, self._min, self._max)
+            self.store, self._count, self._sum, self._min, self._max
+        )
 
     @property
     def name(self):
-        return 'DDSketch'
+        return "DDSketch"
 
     @property
     def num_values(self):
@@ -55,7 +63,7 @@ class DDSketch(object):
 
     @property
     def avg(self):
-        return float(self._sum)/self._count
+        return float(self._sum) / self._count
 
     @property
     def sum(self):
@@ -63,15 +71,14 @@ class DDSketch(object):
 
     def get_key(self, val):
         if val < -self.min_value:
-            return -int(math.ceil(math.log(-val)/self.gamma_ln)) - self.offset
+            return -int(math.ceil(math.log(-val) / self.gamma_ln)) - self.offset
         elif val > self.min_value:
-            return int(math.ceil(math.log(val)/self.gamma_ln)) + self.offset
+            return int(math.ceil(math.log(val) / self.gamma_ln)) + self.offset
         else:
             return 0
 
     def add(self, val):
-        """ Add a value to the sketch.
-        """
+        """Add a value to the sketch."""
         key = self.get_key(val)
         self.store.add(key)
 
@@ -91,22 +98,24 @@ class DDSketch(object):
         if q == 1:
             return self._max
 
-        rank = int(q*(self._count - 1) + 1)
+        rank = int(q * (self._count - 1) + 1)
         key = self.store.key_at_rank(rank)
         if key < 0:
-                    key += self.offset
-                    quantile = -2*pow(self.gamma, -key)/(1 + self.gamma)
+            key += self.offset
+            quantile = -2 * pow(self.gamma, -key) / (1 + self.gamma)
         elif key > 0:
-                    key -= self.offset
-                    quantile = 2*pow(self.gamma, key)/(1 + self.gamma)
+            key -= self.offset
+            quantile = 2 * pow(self.gamma, key) / (1 + self.gamma)
         else:
             quantile = 0
 
-        return  max(quantile, self._min)
+        return max(quantile, self._min)
 
     def merge(self, sketch):
         if not self.mergeable(sketch):
-            raise UnequalSketchParametersException("Cannot merge two DDSketches with different parameters")
+            raise UnequalSketchParametersException(
+                "Cannot merge two DDSketches with different parameters"
+            )
 
         if sketch._count == 0:
             return
@@ -127,8 +136,7 @@ class DDSketch(object):
             self._max = sketch._max
 
     def mergeable(self, other):
-        """ Two sketches can be merged only if their gamma and min_values are equal.
-        """
+        """Two sketches can be merged only if their gamma and min_values are equal."""
         return self.gamma == other.gamma and self.min_value == other.min_value
 
     def copy(self, sketch):
@@ -137,3 +145,25 @@ class DDSketch(object):
         self._max = sketch._max
         self._count = sketch._count
         self._sum = sketch._sum
+
+
+class DDSketch(BaseDDSketch):
+    """The default implementation of a memory-optimal instance of BaseDDSketch, with
+    optimized memory usage, at the cost of lower ingestion speed, using a
+    limited number of bins. When the maximum number of bins is reached, bins
+    with lowest indices are collapsed, which causes the relative accuracy to be
+    lost on lowest quantiles. For the default bin limit, collapsing is unlikely
+    to occur unless the data is distributed with tails heavier than any
+    subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    """
+
+    def __init__(self, relative_accuracy=None, bin_limit=None, min_value=None):
+        if bin_limit is None or bin_limit < 0:
+            bin_limit = DEFAULT_BIN_LIMIT
+        store = CollapsingLowestDenseStore(bin_limit)
+        super().__init__(
+            relative_accuracy=relative_accuracy,
+            bin_limit=bin_limit,
+            min_value=min_value,
+            store=store,
+        )

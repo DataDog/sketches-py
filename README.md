@@ -39,7 +39,7 @@ Now the quantiles of `values` concatenated with `other_values` will be accurate 
 
 ## DDSketch
 
-DDSketch has a relative error guarantee of alpha for any quantile q in [0, 1] that is not too small. Concretely, the q-quantile will be accurate up to a relative error of alpha as long as it belongs to one of the m bins kept by the sketch. The default values of alpha and m are 0.01 and 2048, repectively. In addition, a value that is smaller than min_value in magnitude is indistinguishable from 0. The default min_value is 1.0e-9.
+DDSketch has a relative error guarantee for any quantile q in [0, 1] that is not too small. Concretely, the q-quantile will be accurate up to the specified relative error as long as it belongs to one of the m bins kept by the sketch. The default values for the relative accuracy and m are 0.01 and 2048, repectively. In addition, a value that is smaller than min_value in magnitude is indistinguishable from 0. The default min_value is 1.0e-9.
 
 ### Usage
 ```
@@ -55,7 +55,7 @@ values = np.random.normal(size=500)
 for v in values:
   sketch.add(v)
 ```
-Find the quantiles of `values` to within alpha relative error.
+Find the quantiles of `values` to within the relative error.
 ```
 quantiles = [sketch.quantile(q) for q in [0.5, 0.75, 0.9, 1]]
 ```
@@ -67,7 +67,7 @@ for v in other_values:
   another_sketch.add(v)
 sketch.merge(another_sketch)
 ```
-The quantiles of `values` concatenated with `other_values` are still accurate to within alpha relative error.
+The quantiles of `values` concatenated with `other_values` are still accurate to within the relative error.
 
 ## References
 [1] Michael B. Greenwald and Sanjeev Khanna. Space-efficient online computation of quantile summaries. In Proc. 2001 ACM
