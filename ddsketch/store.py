@@ -15,10 +15,6 @@ INITIAL_NBINS = 128
 CHUNK_SIZE = 128
 
 
-def _grow_by(required_growth):
-    return CHUNK_SIZE * math.ceil((required_growth) / CHUNK_SIZE)
-
-
 class Store(ABC):
     @abstractmethod
     def length(self, store):
@@ -42,11 +38,15 @@ class Store(ABC):
 
 
 class DenseStore(Store):
-    def __init__(self):
+    def __init__(self, initial_nbins=INITIAL_NBINS, chunk_size=CHUNK_SIZE):
+        self.initial_nbins = initial_nbins
+        self.chunk_size = chunk_size
+        self.initial_chunk_size = chunk_size
+
         self.count = 0
         self.min_key = 0
         self.max_key = 0
-        self.bins = [0] * INITIAL_NBINS
+        self.bins = [0] * self.initial_nbins
 
     def __repr__(self):
         repr_str = "{"
@@ -58,7 +58,12 @@ class DenseStore(Store):
     def length(self):
         return len(self.bins)
 
+    def _grow_by(self, required_growth):
+        return self.chunk_size * math.ceil((required_growth) / self.chunk_size)
+
     def add(self, key):
+        if len(self.bins) == 0:
+            self.bins = [0] * self.initial_chunk_size
         if self.count == 0:
             self.max_key = key
             self.min_key = key - len(self.bins) + 1
@@ -84,7 +89,7 @@ class DenseStore(Store):
         if self.min_key < key:
             return
 
-        min_key = self.min_key - _grow_by(self.min_key - key)
+        min_key = self.min_key - self._grow_by(self.min_key - key)
 
         self.bins[:0] = [0] * (self.min_key - min_key)
         self.min_key = min_key
@@ -93,7 +98,7 @@ class DenseStore(Store):
         if self.max_key > key:
             return
 
-        max_key = self.max_key + _grow_by(key - self.max_key)
+        max_key = self.max_key + self._grow_by(key - self.max_key)
         self.bins.extend([0] * (max_key - self.max_key))
         self.max_key = max_key
 
@@ -138,13 +143,17 @@ class DenseStore(Store):
 
 
 class CollapsingLowestDenseStore(DenseStore):
-    def __init__(self, max_bins):
+    def __init__(self, max_bins, initial_nbins=INITIAL_NBINS, chunk_size=CHUNK_SIZE):
         self.max_bins = max_bins
+        self.initial_nbins = min(max_bins, initial_nbins)
+        self.chunk_size = chunk_size
+        self.initial_chunk_size = min(max_bins, chunk_size)
+
         self.count = 0
         self.min_key = 0
         self.max_key = 0
         # self.is_collapsed = False
-        self.bins = [0] * min(max_bins, INITIAL_NBINS)
+        self.bins = [0] * self.initial_nbins
 
     def _grow_left(self, key):
         if self.min_key < key or len(self.bins) >= self.max_bins:
@@ -154,7 +163,9 @@ class CollapsingLowestDenseStore(DenseStore):
         if self.max_key - key >= self.max_bins:
             min_key = min_possible
         else:
-            min_key = max(self.min_key - _grow_by(self.min_key - key), min_possible)
+            min_key = max(
+                self.min_key - self._grow_by(self.min_key - key), min_possible
+            )
 
         self.bins[:0] = [0] * (self.min_key - min_key)
         self.min_key = min_key
@@ -181,7 +192,7 @@ class CollapsingLowestDenseStore(DenseStore):
         else:
             # grow to the right
             max_key = min(
-                self.max_key + _grow_by(key - self.max_key),
+                self.max_key + self._grow_by(key - self.max_key),
                 self.min_key + self.max_bins,
             )
             self.bins.extend([0] * (max_key - self.max_key))
