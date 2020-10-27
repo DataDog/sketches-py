@@ -65,7 +65,7 @@ class TestDDSketch(unittest.TestCase):
         for dataset in datasets:
             for n in test_sizes:
                 data = dataset(n)
-                sketch = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+                sketch = DDSketch(test_rel_acc, test_bin_limit)
                 for v in data.data:
                     sketch.add(v)
                 _evaluate_sketch_accuracy(sketch, data, test_rel_acc)
@@ -74,10 +74,10 @@ class TestDDSketch(unittest.TestCase):
         parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
         for n in test_sizes:
             d = EmptyDataset(0)
-            s = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+            s = DDSketch(test_rel_acc, test_bin_limit)
             for params in parameters:
                 generator = Normal.from_params(params[0], params[1], n)
-                sketch = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+                sketch = DDSketch(test_rel_acc, test_bin_limit)
                 for v in generator.data:
                     sketch.add(v)
                     d.add(v)
@@ -89,8 +89,8 @@ class TestDDSketch(unittest.TestCase):
         for i in range(ntests):
             for n in test_sizes:
                 d = Lognormal(n)
-                s1 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
-                s2 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+                s1 = DDSketch(test_rel_acc, test_bin_limit)
+                s2 = DDSketch(test_rel_acc, test_bin_limit)
                 for v in d.data:
                     if np.random.random() > 0.7:
                         s1.add(v)
@@ -104,10 +104,10 @@ class TestDDSketch(unittest.TestCase):
         datasets = [Normal, Exponential, Laplace, Bimodal]
         for i in range(ntests):
             d = EmptyDataset(0)
-            s = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+            s = DDSketch(test_rel_acc, test_bin_limit)
             for dataset in datasets:
                 generator = dataset(np.random.randint(0, 500))
-                sketch = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+                sketch = DDSketch(test_rel_acc, test_bin_limit)
                 for v in generator.data:
                     sketch.add(v)
                     d.add(v)
@@ -116,8 +116,8 @@ class TestDDSketch(unittest.TestCase):
 
     def test_consistent_merge(self):
         """Test that merge() calls do not modify the argument sketch."""
-        s1 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
-        s2 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+        s1 = DDSketch(test_rel_acc, test_bin_limit)
+        s2 = DDSketch(test_rel_acc, test_bin_limit)
         d = Normal(100)
         for v in d.data:
             s1.add(v)
@@ -149,7 +149,7 @@ class TestDDSketch(unittest.TestCase):
             [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
         )
 
-        s3 = DDSketch(test_rel_acc, test_bin_limit, test_min_value)
+        s3 = DDSketch(test_rel_acc, test_bin_limit)
         s3.merge(s2)
         # merging to an empty sketch does not change s2
         np.testing.assert_almost_equal(
