@@ -21,27 +21,27 @@ class UnequalSketchParametersException(Exception):
 
 class BaseDDSketch(object):
     def __init__(
-        self, relative_accuracy=None, bin_limit=None, min_value=None, store=None
+        self, relative_accuracy=None, bin_limit=None, store=None
     ):
         # Make sure the parameters are valid
         if relative_accuracy is None or (
             relative_accuracy <= 0 or relative_accuracy >= 1
         ):
             relative_accuracy = DEFAULT_REL_ACC
+
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
-        if min_value is None or min_value < 0:
-            min_value = DEFAULT_MIN_VALUE
-        if store is None:
-            self.store = CollapsingLowestDenseStore(bin_limit)
-        else:
-            self.store = store
+
+        self._store = store
+        self._zero_count = 0
 
         x = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + x
         self.gamma_ln = math.log1p(x)
-        self.min_value = min_value
-        self.offset = -int(math.ceil(math.log(min_value) / self.gamma_ln)) + 1
+        self.multiplier = 1.0 / self.gamma_ln
+        self.min_value = DEFAULT_MIN_VALUE
+
+        self.offset = -int(math.ceil(math.log(self.min_value) * self.multiplier)) + 1
 
         self._min = float("+inf")
         self._max = float("-inf")
@@ -49,8 +49,13 @@ class BaseDDSketch(object):
         self._sum = 0
 
     def __repr__(self):
-        return "store: {{{}}}, count: {}, sum: {}, min: {}, max: {}".format(
-            self.store, self._count, self._sum, self._min, self._max
+        return "store: {{{}}}, zero_count: {}, count: {}, sum: {}, min: {}, max: {}".format(
+            self._store,
+            self._zero_count,
+            self._count,
+            self._sum,
+            self._min,
+            self._max,
         )
 
     @property
@@ -69,18 +74,16 @@ class BaseDDSketch(object):
     def sum(self):
         return self._sum
 
-    def get_key(self, val):
-        if val < -self.min_value:
-            return -int(math.ceil(math.log(-val) / self.gamma_ln)) - self.offset
-        elif val > self.min_value:
-            return int(math.ceil(math.log(val) / self.gamma_ln)) + self.offset
-        else:
-            return 0
-
     def add(self, val):
         """Add a value to the sketch."""
-        key = self.get_key(val)
-        self.store.add(key)
+        if val > self.min_value:
+            key = int(math.ceil(math.log(val) * self.multiplier)) + self.offset
+            self._store.add(key)
+        elif val < -self.min_value:
+            key = -int(math.ceil(math.log(-val) * self.multiplier)) - self.offset
+            self._store.add(key)
+        else:
+            self._zero_count += 1
 
         # Keep track of summary stats
         self._count += 1
@@ -99,7 +102,11 @@ class BaseDDSketch(object):
             return self._max
 
         rank = int(q * (self._count - 1) + 1)
-        key = self.store.key_at_rank(rank)
+
+        if rank <= self._zero_count:
+            return 0
+
+        key = self._store.key_at_rank(rank - self._zero_count)
         if key < 0:
             key += self.offset
             quantile = -2 * pow(self.gamma, -key) / (1 + self.gamma)
@@ -125,7 +132,8 @@ class BaseDDSketch(object):
             return
 
         # Merge the stores
-        self.store.merge(sketch.store)
+        self._store.merge(sketch._store)
+        self._zero_count += sketch._zero_count
 
         # Merge summary stats
         self._count += sketch._count
@@ -136,11 +144,12 @@ class BaseDDSketch(object):
             self._max = sketch._max
 
     def mergeable(self, other):
-        """Two sketches can be merged only if their gamma and min_values are equal."""
-        return self.gamma == other.gamma and self.min_value == other.min_value
+        """Two sketches can be merged only if their gammas are equal."""
+        return self.gamma == other.gamma
 
     def copy(self, sketch):
-        self.store.copy(sketch.store)
+        self._store.copy(sketch._store)
+        self._zero_count = sketch._zero_count
         self._min = sketch._min
         self._max = sketch._max
         self._count = sketch._count
@@ -157,13 +166,12 @@ class DDSketch(BaseDDSketch):
     subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
-    def __init__(self, relative_accuracy=None, bin_limit=None, min_value=None):
+    def __init__(self, relative_accuracy=None, bin_limit=None):
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
         store = CollapsingLowestDenseStore(bin_limit)
         super().__init__(
             relative_accuracy=relative_accuracy,
             bin_limit=bin_limit,
-            min_value=min_value,
             store=store,
         )
