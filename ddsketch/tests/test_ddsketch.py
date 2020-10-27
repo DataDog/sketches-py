@@ -51,7 +51,7 @@ test_min_value = 1.0e-9
 def _evaluate_sketch_accuracy(sketch, data, eps):
     n = data.size
     for q in test_quantiles:
-        sketch_q = sketch.quantile(q)
+        sketch_q = sketch.get_quantile_value(q)
         data_q = data.quantile(q)
         err = abs(sketch_q - data_q)
         np.testing.assert_equal(err - eps * abs(data_q) <= 1e-15, True)
@@ -129,7 +129,7 @@ class TestDDSketch(unittest.TestCase):
         for v in d.data:
             s2.add(v)
 
-        s2_summary = [s2.quantile(q) for q in test_quantiles] + [
+        s2_summary = [s2.get_quantile_value(q) for q in test_quantiles] + [
             s2.sum,
             s2.avg,
             s2.num_values,
@@ -139,14 +139,15 @@ class TestDDSketch(unittest.TestCase):
         for v in d.data:
             s1.add(v)
         # changes to s1 does not affect s2 after merge
-        s2_summary = [s2.quantile(q) for q in test_quantiles] + [
+        s2_summary = [s2.get_quantile_value(q) for q in test_quantiles] + [
             s2.sum,
             s2.avg,
             s2.num_values,
         ]
         np.testing.assert_almost_equal(
             s2_summary,
-            [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
+            [s2.get_quantile_value(q) for q in test_quantiles]
+            + [s2.sum, s2.avg, s2.num_values],
         )
 
         s3 = DDSketch(test_rel_acc, test_bin_limit)
@@ -154,5 +155,6 @@ class TestDDSketch(unittest.TestCase):
         # merging to an empty sketch does not change s2
         np.testing.assert_almost_equal(
             s2_summary,
-            [s2.quantile(q) for q in test_quantiles] + [s2.sum, s2.avg, s2.num_values],
+            [s2.get_quantile_value(q) for q in test_quantiles]
+            + [s2.sum, s2.avg, s2.num_values],
         )

@@ -79,11 +79,20 @@ class DenseStore(Store):
     def key_at_rank(self, rank):
         """Return the key for the value at given rank"""
         n = 0
-        for i, b in enumerate(self.bins):
-            n += b
+        for i, bin_ct in enumerate(self.bins):
+            n += bin_ct
             if n >= rank:
                 return i + self.min_key
         return self.max_key
+
+    def reversed_key_at_rank(self, rank):
+        """Return the key for the value at given rank in reversed order"""
+        n = 0
+        for i, b in reversed(list(enumerate(self.bins))):
+            n += b
+            if n >= rank:
+                return i + self.min_key
+        return self.min_key
 
     def _grow_left(self, key):
         if self.min_key < key:
@@ -152,7 +161,7 @@ class CollapsingLowestDenseStore(DenseStore):
         self.count = 0
         self.min_key = 0
         self.max_key = 0
-        # self.is_collapsed = False
+
         self.bins = [0] * self.initial_nbins
 
     def _grow_left(self, key):
