@@ -8,14 +8,17 @@ import math
 
 import numpy as np
 
-"""
-We start with 128 bins and grow the store in chunks of 128 unless specified otherwise.
-"""
+"""Stores map integers to counters. They can be seen as a collection of bins.
+We start with 128 bins and grow the store in chunks of 128 unless specified
+otherwise."""
+
 INITIAL_NBINS = 128
 CHUNK_SIZE = 128
 
 
 class Store(ABC):
+    """The basic specification of a store"""
+
     @abstractmethod
     def length(self, store):
         pass
@@ -38,6 +41,22 @@ class Store(ABC):
 
 
 class DenseStore(Store):
+    """A dense store that keeps all the bins between the bin for the min_key and the
+    max_key.
+
+    Args:
+        initial_nbins (int, optional): the number of initial bins
+        chunk_size (int, optional): the number of bins to grow by
+
+    Attributes:
+        initial_chunk_size (int): the number of bins to initialize with if not
+            initially initialized
+        count (int): the sum of the counts for the bins
+        min_key (int): the minimum key bin
+        min_key (int): the maximum key bin
+        bins (List[int]): the bins
+    """
+
     def __init__(self, initial_nbins=INITIAL_NBINS, chunk_size=CHUNK_SIZE):
         self.initial_nbins = initial_nbins
         self.chunk_size = chunk_size
@@ -62,6 +81,9 @@ class DenseStore(Store):
         return self.chunk_size * math.ceil((required_growth) / self.chunk_size)
 
     def add(self, key):
+        """Updates the counter at the specified index, growing the number of bins if
+        necessary."""
+
         if len(self.bins) == 0:
             self.bins = [0] * self.initial_chunk_size
         if self.count == 0:
@@ -95,6 +117,7 @@ class DenseStore(Store):
         return self.min_key
 
     def _grow_left(self, key):
+        """Add bins to the left"""
         if self.min_key < key:
             return
 
@@ -104,6 +127,7 @@ class DenseStore(Store):
         self.min_key = min_key
 
     def _grow_right(self, key):
+        """Add bins to the right"""
         if self.max_key > key:
             return
 
@@ -112,6 +136,10 @@ class DenseStore(Store):
         self.max_key = max_key
 
     def merge(self, store):
+        """Merge another store into this one. This should be equivalent as running the
+        add operations that have *been run on the other store on this one.
+        """
+
         if store.count == 0:
             return
 
@@ -145,6 +173,7 @@ class DenseStore(Store):
         self.count += store.count
 
     def copy(self, store):
+        """copy the input store into this one"""
         self.bins = store.bins[:]
         self.count = store.count
         self.min_key = store.min_key
@@ -152,6 +181,23 @@ class DenseStore(Store):
 
 
 class CollapsingLowestDenseStore(DenseStore):
+    """A dense store that keeps all the bins between the bin for the min_key and the
+    max_key, but collapsing the left-most bins if the number of bins exceeds max_bins
+
+    Args:
+        max_bins (int): the maximum number of bins
+        initial_nbins (int, optional): the number of initial bins
+        chunk_size (int, optional): the number of bins to grow by
+
+    Attributes:
+        initial_chunk_size (int): the number of bins to initialize with if not
+            initially initialized
+        count (int): the sum of the counts for the bins
+        min_key (int): the minimum key bin
+        min_key (int): the maximum key bin
+        bins (List[int]): the bins
+    """
+
     def __init__(self, max_bins, initial_nbins=INITIAL_NBINS, chunk_size=CHUNK_SIZE):
         self.max_bins = max_bins
         self.initial_nbins = min(max_bins, initial_nbins)
@@ -165,6 +211,7 @@ class CollapsingLowestDenseStore(DenseStore):
         self.bins = [0] * self.initial_nbins
 
     def _grow_left(self, key):
+        """Add bins to the left, collapsing if necessary"""
         if self.min_key < key or len(self.bins) >= self.max_bins:
             return
 
@@ -180,6 +227,7 @@ class CollapsingLowestDenseStore(DenseStore):
         self.min_key = min_key
 
     def _grow_right(self, key):
+        """Add bins to the right, collapsing if necessary"""
         if self.max_key > key:
             return
 
@@ -208,8 +256,6 @@ class CollapsingLowestDenseStore(DenseStore):
             self.max_key = max_key
 
     def copy(self, store):
-        self.bins = store.bins[:]
+        """copy the input store into this one"""
         self.max_bins = store.max_bins
-        self.count = store.count
-        self.min_key = store.min_key
-        self.max_key = store.max_key
+        super().copy(store)

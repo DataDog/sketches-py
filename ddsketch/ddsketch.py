@@ -33,7 +33,6 @@ DDSketch implementations are also available in:
 <a href="https://github.com/DataDog/sketches-go/">Go</a>
 <a href="https://github.com/DataDog/sketches-py/">Python</a>
 <a href="https://github.com/DataDog/sketches-js/">JavaScript</a>
-
 """
 
 import math
@@ -97,7 +96,7 @@ class BaseDDSketch:
         self.count = 0
         self.min = float("+inf")
         self.max = float("-inf")
-        self.sum = 0.0
+        self._sum = 0.0
 
     def __repr__(self):
         return (
@@ -124,7 +123,7 @@ class BaseDDSketch:
     @property
     def sum(self):
         """float: exact sum of the values added to the sketch"""
-        return self.sum
+        return self._sum
 
     def add(self, val):
         """Add a value to the sketch."""
@@ -140,7 +139,7 @@ class BaseDDSketch:
 
         # Keep track of summary stats
         self.count += 1
-        self.sum += val
+        self._sum += val
         if val < self.min:
             self.min = val
         if val > self.max:
@@ -200,7 +199,7 @@ class BaseDDSketch:
 
         # Merge summary stats
         self.count += sketch.count
-        self.sum += sketch.sum
+        self._sum += sketch.sum
         if sketch.min < self.min:
             self.min = sketch.min
         if sketch.max > self.max:
@@ -218,7 +217,7 @@ class BaseDDSketch:
         self.min = sketch.min
         self.max = sketch.max
         self.count = sketch.count
-        self.sum = sketch.sum
+        self._sum = sketch.sum
 
 
 class DDSketch(BaseDDSketch):
