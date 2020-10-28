@@ -3,6 +3,8 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
+"""Tests for DDSketch"""
+
 import unittest
 
 import numpy as np
@@ -43,118 +45,123 @@ datasets = [
     Mixed,
 ]
 
-test_rel_acc = 0.05
-test_bin_limit = 1024
-test_min_value = 1.0e-9
-
-
-def _evaluate_sketch_accuracy(sketch, data, eps):
-    n = data.size
-    for q in test_quantiles:
-        sketch_q = sketch.get_quantile_value(q)
-        data_q = data.quantile(q)
-        err = abs(sketch_q - data_q)
-        np.testing.assert_equal(err - eps * abs(data_q) <= 1e-15, True)
-    np.testing.assert_equal(sketch.num_values, n)
-    np.testing.assert_almost_equal(sketch.sum, data.sum)
-    np.testing.assert_almost_equal(sketch.avg, data.avg)
+TEST_REL_ACC = 0.05
+TEST_BIN_LIMIT = 1024
 
 
 class TestDDSketch(unittest.TestCase):
+    """Class for testing DDSketch"""
+
+    def _evaluate_sketch_accuracy(self, sketch, data, eps):
+        size = data.size
+        for quantile in test_quantiles:
+            sketch_q = sketch.get_quantile_value(quantile)
+            data_q = data.quantile(quantile)
+            err = abs(sketch_q - data_q)
+            np.testing.assert_equal(err - eps * abs(data_q) <= 1e-15, True)
+        self.assertEqual(sketch.num_values, size)
+        self.assertAlmostEqual(sketch.sum, data.sum)
+        self.assertAlmostEqual(sketch.avg, data.avg)
+
     def test_distributions(self):
+        """Test DDSketch on values from various distributions"""
         for dataset in datasets:
-            for n in test_sizes:
-                data = dataset(n)
-                sketch = DDSketch(test_rel_acc, test_bin_limit)
-                for v in data.data:
-                    sketch.add(v)
-                _evaluate_sketch_accuracy(sketch, data, test_rel_acc)
+            for size in test_sizes:
+                data = dataset(size)
+                sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                for value in data.data:
+                    sketch.add(value)
+                self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
 
     def test_merge_equal(self):
+        """Test merging equal-sized DDSketches """
         parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
-        for n in test_sizes:
-            d = EmptyDataset(0)
-            s = DDSketch(test_rel_acc, test_bin_limit)
+        for size in test_sizes:
+            dataset = EmptyDataset(0)
+            target_sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
             for params in parameters:
-                generator = Normal.from_params(params[0], params[1], n)
-                sketch = DDSketch(test_rel_acc, test_bin_limit)
-                for v in generator.data:
-                    sketch.add(v)
-                    d.add(v)
-                s.merge(sketch)
-            _evaluate_sketch_accuracy(s, d, test_rel_acc)
+                generator = Normal.from_params(params[0], params[1], size)
+                sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                for value in generator.data:
+                    sketch.add(value)
+                    dataset.add(value)
+                target_sketch.merge(sketch)
+            self._evaluate_sketch_accuracy(target_sketch, dataset, TEST_REL_ACC)
 
     def test_merge_unequal(self):
+        """Test merging variable-sized DDSketches """
         ntests = 20
-        for i in range(ntests):
-            for n in test_sizes:
-                d = Lognormal(n)
-                s1 = DDSketch(test_rel_acc, test_bin_limit)
-                s2 = DDSketch(test_rel_acc, test_bin_limit)
-                for v in d.data:
+        for _ in range(ntests):
+            for size in test_sizes:
+                dataset = Lognormal(size)
+                sketch1 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                sketch2 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                for value in dataset.data:
                     if np.random.random() > 0.7:
-                        s1.add(v)
+                        sketch1.add(value)
                     else:
-                        s2.add(v)
-                s1.merge(s2)
-                _evaluate_sketch_accuracy(s1, d, test_rel_acc)
+                        sketch2.add(value)
+                sketch1.merge(sketch2)
+                self._evaluate_sketch_accuracy(sketch1, dataset, TEST_REL_ACC)
 
     def test_merge_mixed(self):
+        """Test merging DDSketches of different distributions"""
         ntests = 20
-        datasets = [Normal, Exponential, Laplace, Bimodal]
-        for i in range(ntests):
-            d = EmptyDataset(0)
-            s = DDSketch(test_rel_acc, test_bin_limit)
-            for dataset in datasets:
+        test_datasets = [Normal, Exponential, Laplace, Bimodal]
+        for _ in range(ntests):
+            merged_dataset = EmptyDataset(0)
+            merged_sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+            for dataset in test_datasets:
                 generator = dataset(np.random.randint(0, 500))
-                sketch = DDSketch(test_rel_acc, test_bin_limit)
-                for v in generator.data:
-                    sketch.add(v)
-                    d.add(v)
-                s.merge(sketch)
-            _evaluate_sketch_accuracy(s, d, test_rel_acc)
+                sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                for value in generator.data:
+                    sketch.add(value)
+                    merged_dataset.add(value)
+                merged_sketch.merge(sketch)
+            self._evaluate_sketch_accuracy(merged_sketch, merged_dataset, TEST_REL_ACC)
 
     def test_consistent_merge(self):
         """Test that merge() calls do not modify the argument sketch."""
-        s1 = DDSketch(test_rel_acc, test_bin_limit)
-        s2 = DDSketch(test_rel_acc, test_bin_limit)
-        d = Normal(100)
-        for v in d.data:
-            s1.add(v)
-        s1.merge(s2)
-        # s2 is still empty
-        np.testing.assert_equal(s2.num_values, 0)
+        sketch1 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+        sketch2 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+        dataset = Normal(100)
+        for value in dataset.data:
+            sketch1.add(value)
+        sketch1.merge(sketch2)
+        # sketch2 is still empty
+        self.assertEqual(sketch2.num_values, 0)
 
-        d = Normal(50)
-        for v in d.data:
-            s2.add(v)
+        dataset = Normal(50)
+        for value in dataset.data:
+            sketch2.add(value)
 
-        s2_summary = [s2.get_quantile_value(q) for q in test_quantiles] + [
-            s2.sum,
-            s2.avg,
-            s2.num_values,
+        sketch2_summary = [sketch2.get_quantile_value(q) for q in test_quantiles] + [
+            sketch2.sum,
+            sketch2.avg,
+            sketch2.num_values,
         ]
-        s1.merge(s2)
-        d = Normal(10)
-        for v in d.data:
-            s1.add(v)
-        # changes to s1 does not affect s2 after merge
-        s2_summary = [s2.get_quantile_value(q) for q in test_quantiles] + [
-            s2.sum,
-            s2.avg,
-            s2.num_values,
+        sketch1.merge(sketch2)
+
+        dataset = Normal(10)
+        for value in dataset.data:
+            sketch1.add(value)
+        # changes to sketch1 does not affect sketch2 after merge
+        sketch2_summary = [sketch2.get_quantile_value(q) for q in test_quantiles] + [
+            sketch2.sum,
+            sketch2.avg,
+            sketch2.num_values,
         ]
-        np.testing.assert_almost_equal(
-            s2_summary,
-            [s2.get_quantile_value(q) for q in test_quantiles]
-            + [s2.sum, s2.avg, s2.num_values],
+        self.assertAlmostEqual(
+            sketch2_summary,
+            [sketch2.get_quantile_value(q) for q in test_quantiles]
+            + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
 
-        s3 = DDSketch(test_rel_acc, test_bin_limit)
-        s3.merge(s2)
-        # merging to an empty sketch does not change s2
-        np.testing.assert_almost_equal(
-            s2_summary,
-            [s2.get_quantile_value(q) for q in test_quantiles]
-            + [s2.sum, s2.avg, s2.num_values],
+        sketch3 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+        sketch3.merge(sketch2)
+        # merging to an empty sketch does not change sketch2
+        self.assertAlmostEqual(
+            sketch2_summary,
+            [sketch2.get_quantile_value(q) for q in test_quantiles]
+            + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
