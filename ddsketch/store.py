@@ -3,14 +3,14 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
+"""Stores map integers to counters. They can be seen as a collection of bins.
+We start with 128 bins and grow the store in chunks of 128 unless specified
+otherwise."""
+
 from abc import ABC, abstractmethod
 import math
 
 import numpy as np
-
-"""Stores map integers to counters. They can be seen as a collection of bins.
-We start with 128 bins and grow the store in chunks of 128 unless specified
-otherwise."""
 
 INITIAL_NBINS = 128
 CHUNK_SIZE = 128
@@ -20,24 +20,27 @@ class Store(ABC):
     """The basic specification of a store"""
 
     @abstractmethod
-    def length(self, store):
-        pass
+    def length(self):
+        """the number of bins"""
 
     @abstractmethod
     def add(self, key):
-        pass
+        """Updates the counter at the specified index key, growing the number of bins if
+        necessary."""
 
     @abstractmethod
     def key_at_rank(self, rank):
-        pass
+        """Return the key for the value at given rank"""
 
     @abstractmethod
     def merge(self, store):
-        pass
+        """Merge another store into this one. This should be equivalent as running the
+        add operations that have *been run on the other store on this one.
+        """
 
     @abstractmethod
     def copy(self, store):
-        pass
+        """copy the input store into this one"""
 
 
 class DenseStore(Store):
@@ -75,15 +78,14 @@ class DenseStore(Store):
         return repr_str
 
     def length(self):
+        """the number of bins"""
         return len(self.bins)
 
     def _grow_by(self, required_growth):
+        """calculate the number of bins to grow by"""
         return self.chunk_size * math.ceil((required_growth) / self.chunk_size)
 
     def add(self, key):
-        """Updates the counter at the specified index, growing the number of bins if
-        necessary."""
-
         if len(self.bins) == 0:
             self.bins = [0] * self.initial_chunk_size
         if self.count == 0:
@@ -99,20 +101,19 @@ class DenseStore(Store):
         self.count += 1
 
     def key_at_rank(self, rank):
-        """Return the key for the value at given rank"""
-        n = 0
+        running_ct = 0
         for i, bin_ct in enumerate(self.bins):
-            n += bin_ct
-            if n >= rank:
+            running_ct += bin_ct
+            if running_ct >= rank:
                 return i + self.min_key
         return self.max_key
 
     def reversed_key_at_rank(self, rank):
         """Return the key for the value at given rank in reversed order"""
-        n = 0
-        for i, b in reversed(list(enumerate(self.bins))):
-            n += b
-            if n >= rank:
+        running_ct = 0
+        for i, bin_ct in reversed(list(enumerate(self.bins))):
+            running_ct += bin_ct
+            if running_ct >= rank:
                 return i + self.min_key
         return self.min_key
 
@@ -136,10 +137,6 @@ class DenseStore(Store):
         self.max_key = max_key
 
     def merge(self, store):
-        """Merge another store into this one. This should be equivalent as running the
-        add operations that have *been run on the other store on this one.
-        """
-
         if store.count == 0:
             return
 
@@ -155,8 +152,8 @@ class DenseStore(Store):
                 self.bins[i - self.min_key] += store.bins[i - store.min_key]
 
             if self.min_key > store.min_key:
-                n = np.sum(store.bins[: self.min_key - store.min_key])
-                self.bins[0] += n
+                ct_to_compress = np.sum(store.bins[: self.min_key - store.min_key])
+                self.bins[0] += ct_to_compress
         else:
             if store.min_key < self.min_key:
                 tmp = store.bins[:]
@@ -173,7 +170,6 @@ class DenseStore(Store):
         self.count += store.count
 
     def copy(self, store):
-        """copy the input store into this one"""
         self.bins = store.bins[:]
         self.count = store.count
         self.min_key = store.min_key
@@ -199,15 +195,12 @@ class CollapsingLowestDenseStore(DenseStore):
     """
 
     def __init__(self, max_bins, initial_nbins=INITIAL_NBINS, chunk_size=CHUNK_SIZE):
+        super().__init__()
+
+        # reset attributes taking into account max_bins
         self.max_bins = max_bins
         self.initial_nbins = min(max_bins, initial_nbins)
-        self.chunk_size = chunk_size
         self.initial_chunk_size = min(max_bins, chunk_size)
-
-        self.count = 0
-        self.min_key = 0
-        self.max_key = 0
-
         self.bins = [0] * self.initial_nbins
 
     def _grow_left(self, key):
@@ -240,12 +233,12 @@ class CollapsingLowestDenseStore(DenseStore):
         elif key - self.min_key >= self.max_bins:
             # the new key requires us to compress on the left
             min_key = key - self.max_bins + 1
-            n = np.sum(self.bins[: min_key - self.min_key])
+            ct_to_compress = np.sum(self.bins[: min_key - self.min_key])
             self.bins = self.bins[min_key - self.min_key :]
             self.bins.extend([0] * (key - self.max_key))
             self.max_key = key
             self.min_key = min_key
-            self.bins[0] += n
+            self.bins[0] += ct_to_compress
         else:
             # grow to the right
             max_key = min(
@@ -256,6 +249,5 @@ class CollapsingLowestDenseStore(DenseStore):
             self.max_key = max_key
 
     def copy(self, store):
-        """copy the input store into this one"""
         self.max_bins = store.max_bins
         super().copy(store)
