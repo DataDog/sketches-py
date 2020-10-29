@@ -10,8 +10,6 @@ otherwise."""
 from abc import ABC, abstractmethod
 import math
 
-import numpy as np
-
 INITIAL_NBINS = 128
 CHUNK_SIZE = 128
 
@@ -85,6 +83,10 @@ class DenseStore(Store):
         """calculate the number of bins to grow by"""
         return self.chunk_size * math.ceil((required_growth) / self.chunk_size)
 
+    def _get_index(self, key):
+        """calculate the bin index for the key"""
+        return key - self.min_key
+
     def add(self, key):
         if len(self.bins) == 0:
             self.bins = [0] * self.initial_chunk_size
@@ -96,7 +98,7 @@ class DenseStore(Store):
         elif key > self.max_key:
             self._grow_right(key)
 
-        idx = max(0, key - self.min_key)
+        idx = self._get_index(key)
         self.bins[idx] += 1
         self.count += 1
 
@@ -152,7 +154,7 @@ class DenseStore(Store):
                 self.bins[i - self.min_key] += store.bins[i - store.min_key]
 
             if self.min_key > store.min_key:
-                ct_to_compress = np.sum(store.bins[: self.min_key - store.min_key])
+                ct_to_compress = sum(store.bins[: self.min_key - store.min_key])
                 self.bins[0] += ct_to_compress
         else:
             if store.min_key < self.min_key:
@@ -178,7 +180,8 @@ class DenseStore(Store):
 
 class CollapsingLowestDenseStore(DenseStore):
     """A dense store that keeps all the bins between the bin for the min_key and the
-    max_key, but collapsing the left-most bins if the number of bins exceeds max_bins
+    bin for the max_key, but collapsing the left-most bins if the number of bins
+    exceeds max_bins
 
     Args:
         max_bins (int): the maximum number of bins
@@ -203,24 +206,28 @@ class CollapsingLowestDenseStore(DenseStore):
         self.initial_chunk_size = min(max_bins, chunk_size)
         self.bins = [0] * self.initial_nbins
 
+    def _get_index(self, key):
+        """Override. calculate the bin index for the key"""
+        return max(0, key - self.min_key)
+
     def _grow_left(self, key):
-        """Add bins to the left, collapsing if necessary"""
+        """Override. Add bins to the left, collapsing if necessary"""
         if self.min_key < key or len(self.bins) >= self.max_bins:
             return
 
         min_possible = self.max_key - self.max_bins + 1
         if self.max_key - key >= self.max_bins:
-            min_key = min_possible
+            new_min_key = min_possible
         else:
-            min_key = max(
+            new_min_key = max(
                 self.min_key - self._grow_by(self.min_key - key), min_possible
             )
 
-        self.bins[:0] = [0] * (self.min_key - min_key)
-        self.min_key = min_key
+        self.bins[:0] = [0] * (self.min_key - new_min_key)
+        self.min_key = new_min_key
 
     def _grow_right(self, key):
-        """Add bins to the right, collapsing if necessary"""
+        """Override. Add bins to the right, collapsing if necessary"""
         if self.max_key > key:
             return
 
@@ -232,21 +239,17 @@ class CollapsingLowestDenseStore(DenseStore):
             self.bins[0] = self.count
         elif key - self.min_key >= self.max_bins:
             # the new key requires us to compress on the left
-            min_key = key - self.max_bins + 1
-            ct_to_compress = np.sum(self.bins[: min_key - self.min_key])
-            self.bins = self.bins[min_key - self.min_key :]
+            new_min_key = key - self.max_bins + 1
+            ct_to_compress = sum(self.bins[: new_min_key - self.min_key])
+            self.bins = self.bins[new_min_key - self.min_key :]
             self.bins.extend([0] * (key - self.max_key))
             self.max_key = key
-            self.min_key = min_key
+            self.min_key = new_min_key
             self.bins[0] += ct_to_compress
         else:
             # grow to the right
-            max_key = min(
-                self.max_key + self._grow_by(key - self.max_key),
-                self.min_key + self.max_bins,
-            )
-            self.bins.extend([0] * (max_key - self.max_key))
-            self.max_key = max_key
+            self.bins.extend([0] * (key - self.max_key))
+            self.max_key = key
 
     def copy(self, store):
         self.max_bins = store.max_bins

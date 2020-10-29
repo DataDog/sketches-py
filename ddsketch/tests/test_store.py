@@ -17,7 +17,7 @@ EXTREME_MAX = sys.maxsize
 EXTREME_MIN = -sys.maxsize - 1
 
 
-class TestStore(ABC, TestCase):
+class TestStore(ABC):
     """Base class for testing Store classes"""
 
     @abstractmethod
@@ -125,7 +125,7 @@ class TestStore(ABC, TestCase):
         self.assertEqual(store.count, 1)
 
 
-class TestDenseStore(TestStore):
+class TestDenseStore(TestStore, TestCase):
     """Class for testing the DenseStore class"""
 
     def _test_values(self, store, values):
@@ -139,9 +139,9 @@ class TestDenseStore(TestStore):
             self.assertFalse(all([x == 0 for x in store.bins]))
 
             counter = Counter(values)
-            for i, binn in enumerate(store.bins):
-                if binn != 0:
-                    self.assertEqual(counter[i + store.min_key], binn)
+            for i, sbin in enumerate(store.bins):
+                if sbin != 0:
+                    self.assertEqual(counter[i + store.min_key], sbin)
 
     def _test_store(self, values):
         store = DenseStore()
@@ -175,7 +175,7 @@ class TestDenseStore(TestStore):
         """
 
 
-class TestCollapsingLowestDenseStore(TestStore):
+class TestCollapsingLowestDenseStore(TestStore, TestCase):
     """Class for testing the CollapsingLowestDenseStore class"""
 
     def _test_values(self, store, values):
@@ -191,9 +191,9 @@ class TestCollapsingLowestDenseStore(TestStore):
             max_index = max(counter)
             min_storable_index = max(float("-inf"), max_index - store.max_bins + 1)
             counter = Counter([max(x, min_storable_index) for x in values])
-            for i, binn in enumerate(store.bins):
-                if binn != 0:
-                    self.assertEqual(counter[i + store.min_key], binn)
+            for i, sbin in enumerate(store.bins):
+                if sbin != 0:
+                    self.assertEqual(counter[i + store.min_key], sbin)
 
     def _test_store(self, values):
         for max_bins in TEST_MAX_BINS:
