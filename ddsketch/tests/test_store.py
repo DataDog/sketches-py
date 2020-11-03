@@ -10,9 +10,13 @@ from collections import Counter
 import sys
 from unittest import TestCase
 
-from ddsketch.store import CollapsingLowestDenseStore, DenseStore
+from ddsketch.store import (
+    CollapsingHighestDenseStore,
+    CollapsingLowestDenseStore,
+    DenseStore,
+)
 
-TEST_MAX_BINS = [1, 20, 1000]
+TEST_BIN_LIMIT = [1, 20, 1000]
 EXTREME_MAX = sys.maxsize
 EXTREME_MIN = -sys.maxsize - 1
 
@@ -141,7 +145,7 @@ class TestDenseStore(TestStore, TestCase):
             counter = Counter(values)
             for i, sbin in enumerate(store.bins):
                 if sbin != 0:
-                    self.assertEqual(counter[i + store.min_key], sbin)
+                    self.assertEqual(counter[i + store.offset], sbin)
 
     def _test_store(self, values):
         store = DenseStore()
@@ -180,6 +184,47 @@ class TestCollapsingLowestDenseStore(TestStore, TestCase):
 
     def _test_values(self, store, values):
         counter = Counter(values)
+        expected_total_count = sum(counter.values())
+        self.assertEqual(expected_total_count, sum(store.bins))
+
+        if expected_total_count == 0:
+            self.assertTrue(all([x == 0 for x in store.bins]))
+        else:
+            self.assertFalse(all([x == 0 for x in store.bins]))
+
+            max_index = max(counter)
+            min_storable_index = max(float("-inf"), max_index - store.bin_limit + 1)
+            counter = Counter([max(x, min_storable_index) for x in values])
+
+            for i, sbin in enumerate(store.bins):
+                if sbin != 0:
+                    self.assertEqual(counter[i + store.offset], sbin)
+
+    def _test_store(self, values):
+        for bin_limit in TEST_BIN_LIMIT:
+            store = CollapsingLowestDenseStore(bin_limit)
+            for val in values:
+                store.add(val)
+            self._test_values(store, values)
+
+    def _test_merging(self, list_values):
+        for bin_limit in TEST_BIN_LIMIT:
+            store = CollapsingLowestDenseStore(bin_limit)
+
+            for values in list_values:
+                intermediate_store = CollapsingLowestDenseStore(bin_limit)
+                for val in values:
+                    intermediate_store.add(val)
+                store.merge(intermediate_store)
+            flat_values = [v for values in list_values for v in values]
+            self._test_values(store, flat_values)
+
+
+class TestCollapsingHighestDenseStore(TestStore, TestCase):
+    """Class for testing the CollapsingHighestDenseStore class"""
+
+    def _test_values(self, store, values):
+        counter = Counter(values)
 
         expected_total_count = sum(counter.values())
         self.assertEqual(expected_total_count, sum(store.bins))
@@ -188,29 +233,29 @@ class TestCollapsingLowestDenseStore(TestStore, TestCase):
         else:
             self.assertFalse(all([x == 0 for x in store.bins]))
 
-            max_index = max(counter)
-            min_storable_index = max(float("-inf"), max_index - store.max_bins + 1)
-            counter = Counter([max(x, min_storable_index) for x in values])
+            min_index = min(counter)
+            max_storable_index = min(float("+inf"), min_index + store.bin_limit - 1)
+            counter = Counter([min(x, max_storable_index) for x in values])
+
             for i, sbin in enumerate(store.bins):
                 if sbin != 0:
-                    self.assertEqual(counter[i + store.min_key], sbin)
+                    self.assertEqual(counter[i + store.offset], sbin)
 
     def _test_store(self, values):
-        for max_bins in TEST_MAX_BINS:
-            store = CollapsingLowestDenseStore(max_bins)
+        for bin_limit in TEST_BIN_LIMIT[1:2]:
+            store = CollapsingHighestDenseStore(bin_limit)
             for val in values:
                 store.add(val)
             self._test_values(store, values)
 
     def _test_merging(self, list_values):
-        for max_bins in TEST_MAX_BINS:
-            store = CollapsingLowestDenseStore(max_bins)
+        for bin_limit in TEST_BIN_LIMIT:
+            store = CollapsingHighestDenseStore(bin_limit)
 
             for values in list_values:
-                intermediate_store = CollapsingLowestDenseStore(max_bins)
+                intermediate_store = CollapsingHighestDenseStore(bin_limit)
                 for val in values:
                     intermediate_store.add(val)
                 store.merge(intermediate_store)
-
             flat_values = [v for values in list_values for v in values]
             self._test_values(store, flat_values)

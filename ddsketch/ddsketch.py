@@ -39,7 +39,7 @@ import math
 
 import numpy as np
 
-from .store import CollapsingLowestDenseStore
+from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
@@ -162,7 +162,6 @@ class BaseDDSketch:
             return self.max
 
         rank = int(quantile * (self.count - 1) + 1)
-
         if rank <= self.negative_store.count:
             key = self.negative_store.reversed_key_at_rank(rank)
             quantile_value = -2 * pow(self.gamma, key) / (1 + self.gamma)
@@ -242,7 +241,7 @@ class DDSketch(BaseDDSketch):
             bin_limit = DEFAULT_BIN_LIMIT
 
         store = CollapsingLowestDenseStore(bin_limit)
-        negative_store = CollapsingLowestDenseStore(bin_limit, initial_nbins=0)
+        negative_store = CollapsingHighestDenseStore(bin_limit)
         super().__init__(
             store=store,
             negative_store=negative_store,

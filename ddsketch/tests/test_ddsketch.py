@@ -86,6 +86,8 @@ class TestDDSketch(unittest.TestCase):
                     sketch.add(value)
                     dataset.add(value)
                 target_sketch.merge(sketch)
+                self._evaluate_sketch_accuracy(target_sketch, dataset, TEST_REL_ACC)
+
             self._evaluate_sketch_accuracy(target_sketch, dataset, TEST_REL_ACC)
 
     def test_merge_unequal(self):
