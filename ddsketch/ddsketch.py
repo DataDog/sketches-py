@@ -156,14 +156,10 @@ class BaseDDSketch:
         """
         if quantile < 0 or quantile > 1 or self.count == 0:
             return np.NaN
-        if quantile == 0:
-            return self.min
-        if quantile == 1:
-            return self.max
 
         rank = int(quantile * (self.count - 1) + 1)
         if rank <= self.negative_store.count:
-            key = self.negative_store.reversed_key_at_rank(rank)
+            key = self.negative_store.key_at_rank(rank, reverse=True)
             quantile_value = -2 * pow(self.gamma, key) / (1 + self.gamma)
         elif rank <= self.zero_count + self.negative_store.count:
             return 0

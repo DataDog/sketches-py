@@ -150,22 +150,20 @@ class DenseStore(Store):
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
-    def key_at_rank(self, rank):
+    def key_at_rank(self, rank, reverse=False):
+        if reverse:
+            rank = self.count + 1 - rank
+
         running_ct = 0
         for i, bin_ct in enumerate(self.bins):
             running_ct += bin_ct
             if running_ct >= rank:
                 return i + self.offset
-        return self.max_key
 
-    def reversed_key_at_rank(self, rank):
-        """Return the key for the value at given rank in reversed order"""
-        running_ct = 0
-        for i, bin_ct in reversed(list(enumerate(self.bins))):
-            running_ct += bin_ct
-            if running_ct >= rank:
-                return i + self.offset
-        return self.min_key
+        if reverse:
+            return self.min_key
+        else:
+            return self.max_key
 
     def merge(self, store):
         if store.count == 0:
@@ -287,15 +285,15 @@ class CollapsingLowestDenseStore(DenseStore):
         if store.min_key < self.min_key or store.max_key > self.max_key:
             self._extend_range(store.min_key, store.max_key)
 
-        compress_start_idx = store.min_key - store.offset
-        compress_end_idx = min(self.min_key, store.max_key + 1) - store.offset
-        if compress_end_idx > compress_start_idx:
-            compress_count = sum(store.bins[compress_start_idx:compress_end_idx])
-            self.bins[0] += compress_count
+        collapse_start_idx = store.min_key - store.offset
+        collapse_end_idx = min(self.min_key, store.max_key + 1) - store.offset
+        if collapse_end_idx > collapse_start_idx:
+            collapse_count = sum(store.bins[collapse_start_idx:collapse_end_idx])
+            self.bins[0] += collapse_count
         else:
-            compress_end_idx = compress_start_idx
+            collapse_end_idx = collapse_start_idx
 
-        for key in range(compress_end_idx + store.offset, store.max_key + 1):
+        for key in range(collapse_end_idx + store.offset, store.max_key + 1):
             self.bins[key - self.offset] += store.bins[key - store.offset]
 
         self.count += store.count
@@ -403,15 +401,15 @@ class CollapsingHighestDenseStore(DenseStore):
         if store.min_key < self.min_key or store.max_key > self.max_key:
             self._extend_range(store.min_key, store.max_key)
 
-        compress_end_idx = store.max_key - store.offset + 1
-        compress_start_idx = max(self.max_key + 1, store.min_key) - store.offset
-        if compress_end_idx > compress_start_idx:
-            compress_count = sum(store.bins[compress_start_idx:compress_end_idx])
-            self.bins[-1] += compress_count
+        collapse_end_idx = store.max_key - store.offset + 1
+        collapse_start_idx = max(self.max_key + 1, store.min_key) - store.offset
+        if collapse_end_idx > collapse_start_idx:
+            collapse_count = sum(store.bins[collapse_start_idx:collapse_end_idx])
+            self.bins[-1] += collapse_count
         else:
-            compress_start_idx = compress_end_idx
+            collapse_start_idx = collapse_end_idx
 
-        for key in range(store.min_key, compress_start_idx + store.offset):
+        for key in range(store.min_key, collapse_start_idx + store.offset):
             self.bins[key - self.offset] += store.bins[key - store.offset]
 
         self.count += store.count
