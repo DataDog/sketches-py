@@ -3,167 +3,243 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
+"""A quantile sketch with relative-error guarantees. This sketch computes
+quantile values with an approximation error that is relative to the actual
+quantile value. It works on both negative and non-negative input values.
+
+For instance, using DDSketch with a relative accuracy guarantee set to 1%, if
+the expected quantile value is 100, the computed quantile value is guaranteed to
+be between 99 and 101. If the expected quantile value is 1000, the computed
+quantile value is guaranteed to be between 990 and 1010.
+
+DDSketch works by mapping floating-point input values to bins and counting the
+number of values for each bin. The underlying structure that keeps track of bin
+counts is store.
+
+The memory size of the sketch depends on the range that is covered by the input
+values: the larger that range, the more bins are needed to keep track of the
+input values. As a rough estimate, if working on durations with a relative
+accuracy of 2%, about 2kB (275 bins) are needed to cover values between 1
+millisecond and 1 minute, and about 6kB (802 bins) to cover values between 1
+nanosecond and 1 day.
+
+The size of the sketch can be have a fail-safe upper-bound by using collapsing
+stores. As shown in
+<a href="http://www.vldb.org/pvldb/vol12/p2195-masson.pdf">the DDSketch paper</a>
+the likelihood of a store collapsing when using the default bound is vanishingly
+small for most data.
+
+DDSketch implementations are also available in:
+<a href="https://github.com/DataDog/sketches-go/">Go</a>
+<a href="https://github.com/DataDog/sketches-py/">Python</a>
+<a href="https://github.com/DataDog/sketches-js/">JavaScript</a>
+"""
+
 import math
 
 import numpy as np
 
-from .store import CollapsingLowestDenseStore
+from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
-DEFAULT_MIN_VALUE = 1.0e-9
 
 
 class UnequalSketchParametersException(Exception):
-    pass
+    """thrown when trying to merge two sketches with different relative_accuracy
+    parameters
+    """
 
 
-class BaseDDSketch(object):
+class BaseDDSketch:
+    """The base implementation of DDSketch with no storage specified.
+
+    Args:
+        store (store.Store): storage for positive values
+        negative_store (store.Store): storage for negative values
+        relative_accuracty (float): the accuracy guarantee; referred to as alpha
+            in the paper. (0. < alpha < 1.)
+
+    Attributes:
+        zero_count (int): The count of zero values
+        gamma (float): the base for the exponenntial buckets
+            gamma = (1 + alpha) / (1 - alpha)
+        multiplier (float): used for calculating log_gamma(value)
+            multiplier = 1 / log(gamma)
+        _min_possible: the smallest value the sketch can distinguish from 0
+
+        count: the number of values seen by the sketch
+        min: the minimum value seen by the sketch
+        max: the maximum value seen by the sketch
+        sum: the sum of the values seen by the sketch
+    """
+
     def __init__(
-        self, relative_accuracy=None, bin_limit=None, min_value=None, store=None
+        self,
+        store,
+        negative_store,
+        relative_accuracy,
     ):
-        # Make sure the parameters are valid
-        if relative_accuracy is None or (
-            relative_accuracy <= 0 or relative_accuracy >= 1
-        ):
-            relative_accuracy = DEFAULT_REL_ACC
-        if bin_limit is None or bin_limit < 0:
-            bin_limit = DEFAULT_BIN_LIMIT
-        if min_value is None or min_value < 0:
-            min_value = DEFAULT_MIN_VALUE
-        if store is None:
-            self.store = CollapsingLowestDenseStore(bin_limit)
-        else:
-            self.store = store
+        self.store = store
+        self.negative_store = negative_store
+        self.relative_accuracy = relative_accuracy
 
-        x = 2 * relative_accuracy / (1 - relative_accuracy)
-        self.gamma = 1 + x
-        self.gamma_ln = math.log1p(x)
-        self.min_value = min_value
-        self.offset = -int(math.ceil(math.log(min_value) / self.gamma_ln)) + 1
+        self.zero_count = 0
 
-        self._min = float("+inf")
-        self._max = float("-inf")
-        self._count = 0
-        self._sum = 0
+        gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
+        self.gamma = 1 + gamma_mantissa
+        gamma_ln = math.log1p(gamma_mantissa)
+        self.multiplier = 1.0 / gamma_ln
+        self._min_possible = np.finfo(np.float64).tiny * self.gamma
+
+        self.count = 0
+        self.min = float("+inf")
+        self.max = float("-inf")
+        self._sum = 0.0
 
     def __repr__(self):
-        return "store: {{{}}}, count: {}, sum: {}, min: {}, max: {}".format(
-            self.store, self._count, self._sum, self._min, self._max
+        return (
+            f"store: {self.store}, negative_store: {self.negative_store}, "
+            f"zero_count: {self.zero_count}, count: {self.count}, "
+            f"sum: {self.sum}, min: {self.min}, max: {self.max}"
         )
 
     @property
     def name(self):
+        """str: name of the sketch"""
         return "DDSketch"
 
     @property
     def num_values(self):
-        return self._count
+        """int: number of values in the sketch"""
+        return self.count
 
     @property
     def avg(self):
-        return float(self._sum) / self._count
+        """float: exact avg of the values added to the sketch"""
+        return self.sum / self.count
 
     @property
     def sum(self):
+        """float: exact sum of the values added to the sketch"""
         return self._sum
-
-    def get_key(self, val):
-        if val < -self.min_value:
-            return -int(math.ceil(math.log(-val) / self.gamma_ln)) - self.offset
-        elif val > self.min_value:
-            return int(math.ceil(math.log(val) / self.gamma_ln)) + self.offset
-        else:
-            return 0
 
     def add(self, val):
         """Add a value to the sketch."""
-        key = self.get_key(val)
-        self.store.add(key)
+
+        if val > self._min_possible:
+            key = int(math.ceil(math.log(val) * self.multiplier))
+            self.store.add(key)
+        elif val < -self._min_possible:
+            key = int(math.ceil(math.log(-val) * self.multiplier))
+            self.negative_store.add(key)
+        else:
+            self.zero_count += 1
 
         # Keep track of summary stats
-        self._count += 1
+        self.count += 1
         self._sum += val
-        if val < self._min:
-            self._min = val
-        if val > self._max:
-            self._max = val
+        if val < self.min:
+            self.min = val
+        if val > self.max:
+            self.max = val
 
-    def quantile(self, q):
-        if q < 0 or q > 1 or self._count == 0:
+    def get_quantile_value(self, quantile):
+        """the approximate value at the specified quantile
+
+        Args:
+            quantile (float): 0 <= q <=1
+
+        Returns:
+            the value at the specified quantile or np.NaN if the sketch is empty
+        """
+        if quantile < 0 or quantile > 1 or self.count == 0:
             return np.NaN
-        if q == 0:
-            return self._min
-        if q == 1:
-            return self._max
 
-        rank = int(q * (self._count - 1) + 1)
-        key = self.store.key_at_rank(rank)
-        if key < 0:
-            key += self.offset
-            quantile = -2 * pow(self.gamma, -key) / (1 + self.gamma)
-        elif key > 0:
-            key -= self.offset
-            quantile = 2 * pow(self.gamma, key) / (1 + self.gamma)
+        rank = int(quantile * (self.count - 1) + 1)
+        if rank <= self.negative_store.count:
+            key = self.negative_store.key_at_rank(rank, reverse=True)
+            quantile_value = -2 * pow(self.gamma, key) / (1 + self.gamma)
+        elif rank <= self.zero_count + self.negative_store.count:
+            return 0
         else:
-            quantile = 0
+            key = self.store.key_at_rank(
+                rank - self.zero_count - self.negative_store.count
+            )
+            quantile_value = 2 * pow(self.gamma, key) / (1 + self.gamma)
 
-        return max(quantile, self._min)
+        return max(quantile_value, self.min)
 
     def merge(self, sketch):
+        """Merges the other sketch into this one. After this operation, this sketch
+        encodes the values that were added to both this and the input sketch.
+        """
         if not self.mergeable(sketch):
             raise UnequalSketchParametersException(
                 "Cannot merge two DDSketches with different parameters"
             )
 
-        if sketch._count == 0:
+        if sketch.count == 0:
             return
 
-        if self._count == 0:
+        if self.count == 0:
             self.copy(sketch)
             return
 
         # Merge the stores
         self.store.merge(sketch.store)
+        self.negative_store.merge(sketch.negative_store)
+        self.zero_count += sketch.zero_count
 
         # Merge summary stats
-        self._count += sketch._count
-        self._sum += sketch._sum
-        if sketch._min < self._min:
-            self._min = sketch._min
-        if sketch._max > self._max:
-            self._max = sketch._max
+        self.count += sketch.count
+        self._sum += sketch.sum
+        if sketch.min < self.min:
+            self.min = sketch.min
+        if sketch.max > self.max:
+            self.max = sketch.max
 
     def mergeable(self, other):
-        """Two sketches can be merged only if their gamma and min_values are equal."""
-        return self.gamma == other.gamma and self.min_value == other.min_value
+        """Two sketches can be merged only if their gammas are equal."""
+        return self.gamma == other.gamma
 
     def copy(self, sketch):
+        """copy the input sketch into this one"""
         self.store.copy(sketch.store)
-        self._min = sketch._min
-        self._max = sketch._max
-        self._count = sketch._count
-        self._sum = sketch._sum
+        self.negative_store.copy(sketch.negative_store)
+        self.zero_count = sketch.zero_count
+        self.min = sketch.min
+        self.max = sketch.max
+        self.count = sketch.count
+        self._sum = sketch.sum
 
 
 class DDSketch(BaseDDSketch):
-    """The default implementation of a memory-optimal instance of BaseDDSketch, with
-    optimized memory usage, at the cost of lower ingestion speed, using a
-    limited number of bins. When the maximum number of bins is reached, bins
-    with lowest indices are collapsed, which causes the relative accuracy to be
-    lost on lowest quantiles. For the default bin limit, collapsing is unlikely
-    to occur unless the data is distributed with tails heavier than any
+    """The default implementation of BaseDDSketch, with optimized memory usage at
+    the cost of lower ingestion speed, using a limited number of bins. When the
+    maximum number of bins is reached, bins with lowest indices are collapsed,
+    which causes the relative accuracy to be lost on lowest quantiles. For the
+    default bin limit, collapsing is unlikely to occur unless the data is
+    distributed with tails heavier than any
     subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
-    def __init__(self, relative_accuracy=None, bin_limit=None, min_value=None):
+    def __init__(self, relative_accuracy=None, bin_limit=None):
+
+        # Make sure the parameters are valid
+        if relative_accuracy is None or (
+            relative_accuracy <= 0 or relative_accuracy >= 1
+        ):
+            relative_accuracy = DEFAULT_REL_ACC
+
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
+
         store = CollapsingLowestDenseStore(bin_limit)
+        negative_store = CollapsingHighestDenseStore(bin_limit)
         super().__init__(
-            relative_accuracy=relative_accuracy,
-            bin_limit=bin_limit,
-            min_value=min_value,
             store=store,
+            negative_store=negative_store,
+            relative_accuracy=relative_accuracy,
         )
