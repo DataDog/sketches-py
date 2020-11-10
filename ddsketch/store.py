@@ -30,7 +30,7 @@ class Store(ABC):
         necessary."""
 
     @abstractmethod
-    def key_at_rank(self, rank):
+    def key_at_rank(self, rank, reverse=False):
         """Return the key for the value at given rank"""
 
     @abstractmethod
