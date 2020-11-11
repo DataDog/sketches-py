@@ -91,7 +91,9 @@ class LinearlyInterpolatedMapping(KeyMapping):
         self._log_correction = 1.0 / math.log2(math.e)
 
     def key(self, value):
-        return int(math.ceil(math.log2(value) * self._log_correction * self._multiplier))
+        return int(
+            math.ceil(math.log2(value) * self._log_correction * self._multiplier)
+        )
 
     def value(self, key):
         return np.exp2(self._exp_correction * key) * (2.0 / (1 + self.gamma))
