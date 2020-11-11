@@ -33,16 +33,19 @@ class KeyMapping(ABC):
     Attributes:
         gamma (float): the base for the exponential buckets
             gamma = (1 + alpha) / (1 - alpha)
-        multiplier (float): used for calculating log_gamma(value)
-            multiplier = 1 / log(gamma)
         min_possible: the smallest value the sketch can distinguish from 0
         max_possible: the largest value the sketch can handle
+        _multiplier (float): used for calculating log_gamma(value)
+            _multiplier = 1 / log(gamma)
     """
 
     def __init__(self, relative_accuracy):
         self.relative_accuracy = relative_accuracy
         gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + gamma_mantissa
+        self._multiplier = 1.0 / math.log(self.gamma)
+        self.min_possible = np.finfo(np.float64).tiny * self.gamma
+        self.max_possible = np.finfo(np.float64).max / self.gamma
 
     @abstractmethod
     def key(self, value):
@@ -69,14 +72,8 @@ class LogarithmicMapping(KeyMapping):
     done by logarithmically mapping floating-point values to integers.
     """
 
-    def __init__(self, relative_accuracy):
-        super().__init__(relative_accuracy)
-        self.multiplier = 1.0 / math.log(self.gamma)
-        self.min_possible = np.finfo(np.float64).tiny * self.gamma
-        self.max_possible = np.finfo(np.float64).max / self.gamma
-
     def key(self, value):
-        return int(math.ceil(math.log(value) * self.multiplier))
+        return int(math.ceil(math.log(value) * self._multiplier))
 
     def value(self, key):
         return pow(self.gamma, key) * (2.0 / (1 + self.gamma))
@@ -85,18 +82,16 @@ class LogarithmicMapping(KeyMapping):
 class LinearlyInterpolatedMapping(KeyMapping):
     """A fast KeyMapping that approximates the memory-optimal one
     (LogarithmicMapping) by extracting the floor value of the logarithm to the
-    base 2 from the binary representations of floating-point values and
+     base 2 from the binary representations of floating-point values and
     linearly interpolating the logarithm in-between."""
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        self.multiplier = 1.0 / math.log(self.gamma)
-        self.min_possible = np.finfo(np.float64).tiny * self.gamma
-        self.max_possible = np.finfo(np.float64).max / self.gamma
+        self._exp_correction = math.log2(self.gamma)
         self._log_correction = 1.0 / math.log2(math.e)
 
     def key(self, value):
-        return int(math.ceil(math.log2(value) * self.multiplier * self._log_correction))
+        return int(math.ceil(math.log2(value) * self._log_correction * self._multiplier))
 
     def value(self, key):
-        return pow(self.gamma, key) * (2.0 / (1 + self.gamma))
+        return np.exp2(self._exp_correction * key) * (2.0 / (1 + self.gamma))
