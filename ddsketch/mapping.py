@@ -72,11 +72,18 @@ class LogarithmicMapping(KeyMapping):
     done by logarithmically mapping floating-point values to integers.
     """
 
+    def __init__(self, relative_accuracy):
+        super().__init__(relative_accuracy)
+        self._exp_correction = math.log2(self.gamma)
+        self._log_correction = math.log(2)
+
     def key(self, value):
-        return int(math.ceil(math.log(value) * self._multiplier))
+        return int(
+            math.ceil(math.log2(value) * self._log_correction * self._multiplier)
+        )
 
     def value(self, key):
-        return pow(self.gamma, key) * (2.0 / (1 + self.gamma))
+        return np.exp2(self._exp_correction * key) * (2.0 / (1 + self.gamma))
 
 
 class LinearlyInterpolatedMapping(KeyMapping):
@@ -88,12 +95,78 @@ class LinearlyInterpolatedMapping(KeyMapping):
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
         self._exp_correction = math.log2(self.gamma)
-        self._log_correction = 1.0 / math.log2(math.e)
+        self._log_correction = math.log(2)
+
+    def _log2_approx(self, value):
+        """ an approximation to the log2 function
+
+        frexp(v) returns m and e s.t.
+        v = m * 2 ** e ; (m in (0.5, 1))
+        """
+        #
+        mantissa, exponent = math.frexp(value)
+        # v = (1+s) * 2 ** (e-1) ; (s in (0, 1))
+        significand = 2 * mantissa - 1
+        return significand + (exponent - 1)
+
+    def _exp2_approx(self, value):
+        exponent = math.floor(value) + 1
+        mantissa = (value - exponent + 2) / 2.
+        return math.ldexp(mantissa, exponent)
 
     def key(self, value):
         return int(
-            math.ceil(math.log2(value) * self._log_correction * self._multiplier)
+            math.ceil(self._log2_approx(value) * self._log_correction * self._multiplier)
         )
 
     def value(self, key):
-        return np.exp2(self._exp_correction * key) * (2.0 / (1 + self.gamma))
+        return self._exp2_approx(self._exp_correction * key) * (2.0 / (1 + self.gamma))
+
+
+class CubicallyInterpolatedMapping(KeyMapping):
+    A = 6 / 35
+    B = -3 / 5
+    C = 10 / 7
+
+    def __init__(self, relative_accuracy):
+        super().__init__(relative_accuracy)
+        #self._exp_correction = math.log2(self.gamma)
+        self._exp_correction = math.log2(self.gamma) * self.C
+        #self._log_correction = 1 / math.log2(math.e)
+        self._log_correction = 1 / self.C
+
+    def _cubic_log2_approx(self, value):
+        mantissa, exponent = math.frexp(value)
+        significand = 2 * mantissa - 1
+        return (
+            (self.A * significand + self.B) * significand + self.C
+        ) * significand + (exponent - 1)
+
+    def _cubic_exp2_approx(self, value):
+        """ Derived from Cardano's formula """
+
+        exponent = math.floor(value)
+        delta_0 = self.B * self.B - 3 * self.A * self.C
+        delta_1 = (
+            2 * self.B * self.B * self.B
+            - 9 * self.A * self.B * self.C
+            - 27 * self.A * self.A * (value - exponent)
+        )
+        cardano = np.cbrt(
+            (delta_1 - np.sqrt(delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)) / 2
+        )
+        significand_plus_one = -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
+        mantissa = significand_plus_one / 2
+        return np.ldexp(mantissa, exponent + 1)
+
+    def key(self, value):
+        return int(
+            math.ceil(
+                self._cubic_log2_approx(value) * self._multiplier * self._log_correction
+            )
+        )
+
+    def value(self, key):
+        return self._cubic_exp2_approx(self._exp_correction * key) * (
+            2.0 / (1 + self.gamma)
+        )

@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 import math
 from unittest import TestCase
 
-from ddsketch.mapping import LogarithmicMapping, LinearlyInterpolatedMapping
+from ddsketch.mapping import CubicallyInterpolatedMapping, LogarithmicMapping, LinearlyInterpolatedMapping
 
 
 def _relative_error(expected_min, expected_max, actual):
@@ -79,3 +79,10 @@ class TestLinearlyInterpolatedMapping(TestKeyMapping, TestCase):
 
     def mapping(self, relative_accuracy):
         return LinearlyInterpolatedMapping(relative_accuracy)
+
+
+class TestCubicallyInterpolatedMapping(TestKeyMapping, TestCase):
+    """Class for testing CubicallyInterpolatedMapping class"""
+
+    def mapping(self, relative_accuracy):
+        return CubicallyInterpolatedMapping(relative_accuracy)
