@@ -47,12 +47,12 @@ class KeyMapping(ABC):
         self.max_possible = np.finfo(np.float64).max / self.gamma
 
     @abstractmethod
-    def _log_approx(self, value):
-        """ Return an approximation of the logarithm base gamma """
+    def _log_gamma(self, value):
+        """ Return (an approximation of) the logarithm of the value base gamma """
 
     @abstractmethod
-    def _exp_approx(self, value):
-        """ Return an approximation of exponentiation by gamma """
+    def _pow_gamma(self, value):
+        """ Return (an approximation of) gamma to the power value """
 
     def key(self, value):
         """
@@ -61,7 +61,7 @@ class KeyMapping(ABC):
         Returns:
             int: the key specifying the bucket for value
         """
-        return int(math.ceil(self._log_approx(value)))
+        return int(math.ceil(self._log_gamma(value)))
 
     def value(self, key):
         """
@@ -70,7 +70,7 @@ class KeyMapping(ABC):
         Returns:
             float: the value represented by the bucket specified by the key
         """
-        return self._exp_approx(key) * (2.0 / (1 + self.gamma))
+        return self._pow_gamma(key) * (2.0 / (1 + self.gamma))
 
 
 class LogarithmicMapping(KeyMapping):
@@ -83,10 +83,10 @@ class LogarithmicMapping(KeyMapping):
         super().__init__(relative_accuracy)
         self._multiplier = math.log(2) / math.log(self.gamma)
 
-    def _log_approx(self, value):
+    def _log_gamma(self, value):
         return math.log2(value) * self._multiplier
 
-    def _exp_approx(self, value):
+    def _pow_gamma(self, value):
         return np.exp2(value / self._multiplier)
 
 
@@ -118,10 +118,10 @@ class LinearlyInterpolatedMapping(KeyMapping):
         mantissa = (value - exponent + 2) / 2.0
         return math.ldexp(mantissa, exponent)
 
-    def _log_approx(self, value):
+    def _log_gamma(self, value):
         return self._log2_approx(value) * self._multiplier
 
-    def _exp_approx(self, value):
+    def _pow_gamma(self, value):
         return self._exp2_approx(value / self._multiplier)
 
 
@@ -170,8 +170,8 @@ class CubicallyInterpolatedMapping(KeyMapping):
         mantissa = significand_plus_one / 2
         return np.ldexp(mantissa, exponent + 1)
 
-    def _log_approx(self, value):
+    def _log_gamma(self, value):
         return self._cubic_log2_approx(value) * self._multiplier
 
-    def _exp_approx(self, value):
+    def _pow_gamma(self, value):
         return self._cubic_exp2_approx(value / self._multiplier)

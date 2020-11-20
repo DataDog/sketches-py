@@ -64,7 +64,6 @@ class TestKeyMapping(ABC):
         rel_acc_mult = 1 - math.sqrt(2) * 1e-1
         min_rel_acc = 1e-8
         rel_acc = 1 - 1e-3
-        # rel_acc = 0.01
 
         while rel_acc >= min_rel_acc:
             mapping = self.mapping(rel_acc)
