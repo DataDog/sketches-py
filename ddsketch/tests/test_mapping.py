@@ -9,7 +9,11 @@ from abc import ABC, abstractmethod
 import math
 from unittest import TestCase
 
-from ddsketch.mapping import CubicallyInterpolatedMapping, LogarithmicMapping, LinearlyInterpolatedMapping
+from ddsketch.mapping import (
+    CubicallyInterpolatedMapping,
+    LogarithmicMapping,
+    LinearlyInterpolatedMapping,
+)
 
 
 def _relative_error(expected_min, expected_max, actual):
@@ -26,7 +30,7 @@ def _relative_error(expected_min, expected_max, actual):
     return (actual - expected_max) / expected_max
 
 
-def _test_value_rel_acc(mapping):
+def _test_value_rel_acc(mapping, tester):
     """ calculate the relative accuracy of a mapping on a large range of values """
     value_mult = 2 - math.sqrt(2) * 1e-1
     max_relative_acc = 0.0
@@ -35,6 +39,7 @@ def _test_value_rel_acc(mapping):
         value *= value_mult
         map_val = mapping.value(mapping.key(value))
         rel_err = _relative_error(value, value, map_val)
+        tester.assertLess(rel_err, mapping.relative_accuracy)
         max_relative_acc = max(max_relative_acc, rel_err)
     max_relative_acc = max(
         max_relative_acc,
@@ -59,10 +64,11 @@ class TestKeyMapping(ABC):
         rel_acc_mult = 1 - math.sqrt(2) * 1e-1
         min_rel_acc = 1e-8
         rel_acc = 1 - 1e-3
+        # rel_acc = 0.01
 
         while rel_acc >= min_rel_acc:
             mapping = self.mapping(rel_acc)
-            max_rel_acc = _test_value_rel_acc(mapping)
+            max_rel_acc = _test_value_rel_acc(mapping, self)
             self.assertLess(max_rel_acc, mapping.relative_accuracy)
             rel_acc *= rel_acc_mult
 
@@ -82,7 +88,7 @@ class TestLinearlyInterpolatedMapping(TestKeyMapping, TestCase):
 
 
 class TestCubicallyInterpolatedMapping(TestKeyMapping, TestCase):
-    """Class for testing CubicallyInterpolatedMapping class"""
+    """Class for testing CubicallyInterpolatedMapping class"""  #
 
     def mapping(self, relative_accuracy):
         return CubicallyInterpolatedMapping(relative_accuracy)

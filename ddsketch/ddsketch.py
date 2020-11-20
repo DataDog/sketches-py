@@ -37,8 +37,8 @@ DDSketch implementations are also available in:
 
 import numpy as np
 
-from .mapping import LinearlyInterpolatedMapping
-from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore
+from .mapping import LogarithmicMapping
+from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
@@ -206,9 +206,36 @@ class BaseDDSketch:
 
 class DDSketch(BaseDDSketch):
     """The default implementation of BaseDDSketch, with optimized memory usage at
-    the cost of lower ingestion speed, using a limited number of bins. When the
-    maximum number of bins is reached, bins with lowest indices are collapsed,
-    which causes the relative accuracy to be lost on lowest quantiles. For the
+    the cost of lower ingestion speed, using an unlimited number of bins. The
+    number of bins will not exceed a reasonable number unless the data is
+    distributed with tails heavier than any  subexponential.
+    (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    """
+
+    def __init__(self, relative_accuracy=None):
+
+        # Make sure the parameters are valid
+        if relative_accuracy is None or (
+            relative_accuracy <= 0 or relative_accuracy >= 1
+        ):
+            relative_accuracy = DEFAULT_REL_ACC
+
+        mapping = LogarithmicMapping(relative_accuracy)
+        store = DenseStore()
+        negative_store = DenseStore()
+        super().__init__(
+            mapping=mapping,
+            store=store,
+            negative_store=negative_store,
+            relative_accuracy=relative_accuracy,
+        )
+
+
+class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
+    """Implementation of BaseDDSketch with optimized memory usage at the cost of
+    lower ingestion speed, using a limited number of bins. When the maximum
+    number of bins is reached, bins with lowest indices are collapsed, which
+    causes the relative accuracy to be lost on the lowest quantiles. For the
     default bin limit, collapsing is unlikely to occur unless the data is
     distributed with tails heavier than any
     subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
@@ -225,8 +252,40 @@ class DDSketch(BaseDDSketch):
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
 
-        mapping = LinearlyInterpolatedMapping(relative_accuracy)
+        mapping = LogarithmicMapping(relative_accuracy)
         store = CollapsingLowestDenseStore(bin_limit)
+        negative_store = CollapsingLowestDenseStore(bin_limit)
+        super().__init__(
+            mapping=mapping,
+            store=store,
+            negative_store=negative_store,
+            relative_accuracy=relative_accuracy,
+        )
+
+
+class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
+    """Implementation of BaseDDSketch with optimized memory usage at the cost of
+    lower ingestion speed, using a limited number of bins. When the maximum
+    number of bins is reached, bins with highest indices are collapsed, which
+    causes the relative accuracy to be lost on the highest quantiles. For the
+    default bin limit, collapsing is unlikely to occur unless the data is
+    distributed with tails heavier than any
+    subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    """
+
+    def __init__(self, relative_accuracy=None, bin_limit=None):
+
+        # Make sure the parameters are valid
+        if relative_accuracy is None or (
+            relative_accuracy <= 0 or relative_accuracy >= 1
+        ):
+            relative_accuracy = DEFAULT_REL_ACC
+
+        if bin_limit is None or bin_limit < 0:
+            bin_limit = DEFAULT_BIN_LIMIT
+
+        mapping = LogarithmicMapping(relative_accuracy)
+        store = CollapsingHighestDenseStore(bin_limit)
         negative_store = CollapsingHighestDenseStore(bin_limit)
         super().__init__(
             mapping=mapping,

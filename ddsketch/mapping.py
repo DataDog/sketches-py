@@ -43,11 +43,17 @@ class KeyMapping(ABC):
         self.relative_accuracy = relative_accuracy
         gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + gamma_mantissa
-        self._multiplier = 1.0 / math.log(self.gamma)
         self.min_possible = np.finfo(np.float64).tiny * self.gamma
         self.max_possible = np.finfo(np.float64).max / self.gamma
 
     @abstractmethod
+    def _log_approx(self, value):
+        """ Return an approximation of the logarithm base gamma """
+
+    @abstractmethod
+    def _exp_approx(self, value):
+        """ Return an approximation of exponentiation by gamma """
+
     def key(self, value):
         """
         Args:
@@ -55,8 +61,8 @@ class KeyMapping(ABC):
         Returns:
             int: the key specifying the bucket for value
         """
+        return int(math.ceil(self._log_approx(value)))
 
-    @abstractmethod
     def value(self, key):
         """
         Args:
@@ -64,6 +70,7 @@ class KeyMapping(ABC):
         Returns:
             float: the value represented by the bucket specified by the key
         """
+        return self._exp_approx(key) * (2.0 / (1 + self.gamma))
 
 
 class LogarithmicMapping(KeyMapping):
@@ -74,16 +81,13 @@ class LogarithmicMapping(KeyMapping):
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        self._exp_correction = math.log2(self.gamma)
-        self._log_correction = math.log(2)
+        self._multiplier = math.log(2) / math.log(self.gamma)
 
-    def key(self, value):
-        return int(
-            math.ceil(math.log2(value) * self._log_correction * self._multiplier)
-        )
+    def _log_approx(self, value):
+        return math.log2(value) * self._multiplier
 
-    def value(self, key):
-        return np.exp2(self._exp_correction * key) * (2.0 / (1 + self.gamma))
+    def _exp_approx(self, value):
+        return np.exp2(value / self._multiplier)
 
 
 class LinearlyInterpolatedMapping(KeyMapping):
@@ -94,48 +98,53 @@ class LinearlyInterpolatedMapping(KeyMapping):
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        self._exp_correction = math.log2(self.gamma)
-        self._log_correction = math.log(2)
+        self._multiplier = 1.0 / math.log(self.gamma)
 
     def _log2_approx(self, value):
-        """ an approximation to the log2 function
+        """approximates log2 by s + f
+        where v = (s+1) * 2 ** f  for s in [0, 1)
 
         frexp(v) returns m and e s.t.
-        v = m * 2 ** e ; (m in (0.5, 1))
+        v = m * 2 ** e ; (m in [0.5, 1) or 0.0)
+        so we adjust m and e accordingly
         """
-        #
         mantissa, exponent = math.frexp(value)
-        # v = (1+s) * 2 ** (e-1) ; (s in (0, 1))
         significand = 2 * mantissa - 1
         return significand + (exponent - 1)
 
     def _exp2_approx(self, value):
+        """ inverse of _log2_approx """
         exponent = math.floor(value) + 1
-        mantissa = (value - exponent + 2) / 2.
+        mantissa = (value - exponent + 2) / 2.0
         return math.ldexp(mantissa, exponent)
 
-    def key(self, value):
-        return int(
-            math.ceil(self._log2_approx(value) * self._log_correction * self._multiplier)
-        )
+    def _log_approx(self, value):
+        return self._log2_approx(value) * self._multiplier
 
-    def value(self, key):
-        return self._exp2_approx(self._exp_correction * key) * (2.0 / (1 + self.gamma))
+    def _exp_approx(self, value):
+        return self._exp2_approx(value / self._multiplier)
 
 
 class CubicallyInterpolatedMapping(KeyMapping):
+    """A fast KeyMapping that approximates the memory-optimal LogarithmicMapping by
+     extracting the floor value of the logarithm to the base 2 from the binary
+     representations of floating-point values and cubically interpolating the
+     logarithm in-between.
+
+    More detailed documentation of this method can be found in:
+    <a href="https://github.com/DataDog/sketches-java/">sketches-java</a>
+    """
+
     A = 6 / 35
     B = -3 / 5
     C = 10 / 7
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        #self._exp_correction = math.log2(self.gamma)
-        self._exp_correction = math.log2(self.gamma) * self.C
-        #self._log_correction = 1 / math.log2(math.e)
-        self._log_correction = 1 / self.C
+        self._multiplier = 1.0 / (math.log(self.gamma) * self.C)
 
     def _cubic_log2_approx(self, value):
+        """ approximates log2 using a cubic polynomial """
         mantissa, exponent = math.frexp(value)
         significand = 2 * mantissa - 1
         return (
@@ -155,18 +164,14 @@ class CubicallyInterpolatedMapping(KeyMapping):
         cardano = np.cbrt(
             (delta_1 - np.sqrt(delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)) / 2
         )
-        significand_plus_one = -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
+        significand_plus_one = (
+            -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
+        )
         mantissa = significand_plus_one / 2
         return np.ldexp(mantissa, exponent + 1)
 
-    def key(self, value):
-        return int(
-            math.ceil(
-                self._cubic_log2_approx(value) * self._multiplier * self._log_correction
-            )
-        )
+    def _log_approx(self, value):
+        return self._cubic_log2_approx(value) * self._multiplier
 
-    def value(self, key):
-        return self._cubic_exp2_approx(self._exp_correction * key) * (
-            2.0 / (1 + self.gamma)
-        )
+    def _exp_approx(self, value):
+        return self._cubic_exp2_approx(value / self._multiplier)
