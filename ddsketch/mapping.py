@@ -4,18 +4,17 @@
 # Copyright 2020 Datadog, Inc.
 
 """A mapping between values and integer indices that imposes relative accuracy
-guarantees. Specifically, for any value minIndexableValue() < value < maxIndexableValue
-()}, implementations of {@link IndexMapping} must be such that {@code value(index(v))}
-is close to {@code v} with a relative error that is less than {@link #relativeAccuracy()}.
+guarantees. Specifically, for any value `minIndexableValue() < value <
+maxIndexableValue` implementations of `KeyMapping` must be such that
+`value(key(v))` is close to `v` with a relative error that is less than
+`relative_accuracy`.
 
-In implementations of {@code IndexMapping}, there generally is a trade-off
-between the cost of computing index and the number of indices that are required
-to cover a given range of values (memory optimality). The most memory-optimal
-mapping is the {@link LogarithmicMapping}, but it requires the costly evaluation
-of the arithm when computing the index. Other mappings can approximate the
-logarithmic mapping, while being less computonally costly. The following table
-shows the characteristics of a few implementations of {@code IndexMapping},
-highlighting the above-mentioned trade-off.
+In implementations of KeyMapping, there is generally a trade-off between the
+cost of computing the key and the number of keys that are required to cover a
+given range of values (memory optimality). The most memory-optimal mapping is
+the LogarithmicMapping, but it requires the costly evaluation of the logarithm
+when computing the index. Other mappings can approximate the logarithmic
+mapping, while being less computationally costly.
 """
 
 from abc import ABC, abstractmethod
@@ -36,13 +35,14 @@ class KeyMapping(ABC):
         min_possible: the smallest value the sketch can distinguish from 0
         max_possible: the largest value the sketch can handle
         _multiplier (float): used for calculating log_gamma(value)
-            _multiplier = 1 / log(gamma)
+            initially, _multiplier = 1 / log(gamma)
     """
 
     def __init__(self, relative_accuracy):
         self.relative_accuracy = relative_accuracy
         gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + gamma_mantissa
+        self._multiplier = 1 / math.log1p(gamma_mantissa)
         self.min_possible = np.finfo(np.float64).tiny * self.gamma
         self.max_possible = np.finfo(np.float64).max / self.gamma
 
@@ -81,7 +81,7 @@ class LogarithmicMapping(KeyMapping):
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        self._multiplier = math.log(2) / math.log(self.gamma)
+        self._multiplier *= math.log(2)
 
     def _log_gamma(self, value):
         return math.log2(value) * self._multiplier
@@ -98,7 +98,6 @@ class LinearlyInterpolatedMapping(KeyMapping):
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        self._multiplier = 1.0 / math.log(self.gamma)
 
     def _log2_approx(self, value):
         """approximates log2 by s + f
@@ -141,7 +140,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
 
     def __init__(self, relative_accuracy):
         super().__init__(relative_accuracy)
-        self._multiplier = 1.0 / (math.log(self.gamma) * self.C)
+        self._multiplier /= self.C
 
     def _cubic_log2_approx(self, value):
         """ approximates log2 using a cubic polynomial """

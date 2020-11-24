@@ -45,6 +45,12 @@ DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
 
 
+class InvalidRelativeAccuracyException(Exception):
+    """thrown when trying to merge two sketches with different relative_accuracy
+    parameters
+    """
+
+
 class UnequalSketchParametersException(Exception):
     """thrown when trying to merge two sketches with different relative_accuracy
     parameters
@@ -215,10 +221,12 @@ class DDSketch(BaseDDSketch):
     def __init__(self, relative_accuracy=None):
 
         # Make sure the parameters are valid
-        if relative_accuracy is None or (
-            relative_accuracy <= 0 or relative_accuracy >= 1
-        ):
+        if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
+        if relative_accuracy <= 0 or relative_accuracy >= 1:
+            raise InvalidRelativeAccuracyException(
+                "Relative accuracy must be between 0 and 1."
+            )
 
         mapping = LogarithmicMapping(relative_accuracy)
         store = DenseStore()

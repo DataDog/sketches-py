@@ -55,6 +55,8 @@ TEST_BIN_LIMIT = 1024
 
 
 class TestDDSketches(ABC):
+    """AbstractBaseClass for testing DDSketch implementations"""
+
     @staticmethod
     @abstractmethod
     def _new_dd_sketch():
