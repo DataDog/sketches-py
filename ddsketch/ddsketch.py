@@ -35,15 +35,20 @@ DDSketch implementations are also available in:
 <a href="https://github.com/DataDog/sketches-js/">JavaScript</a>
 """
 
-import math
-
 import numpy as np
 
-from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore
+from .mapping import LogarithmicMapping
+from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
+
+
+class InvalidRelativeAccuracyException(Exception):
+    """thrown when trying to merge two sketches with different relative_accuracy
+    parameters
+    """
 
 
 class UnequalSketchParametersException(Exception):
@@ -56,6 +61,7 @@ class BaseDDSketch:
     """The base implementation of DDSketch with no storage specified.
 
     Args:
+        mapping (store.Mapping): map btw values and store bins
         store (store.Store): storage for positive values
         negative_store (store.Store): storage for negative values
         relative_accuracty (float): the accuracy guarantee; referred to as alpha
@@ -63,11 +69,6 @@ class BaseDDSketch:
 
     Attributes:
         zero_count (int): The count of zero values
-        gamma (float): the base for the exponenntial buckets
-            gamma = (1 + alpha) / (1 - alpha)
-        multiplier (float): used for calculating log_gamma(value)
-            multiplier = 1 / log(gamma)
-        _min_possible: the smallest value the sketch can distinguish from 0
 
         count: the number of values seen by the sketch
         min: the minimum value seen by the sketch
@@ -77,21 +78,17 @@ class BaseDDSketch:
 
     def __init__(
         self,
+        mapping,
         store,
         negative_store,
         relative_accuracy,
     ):
+        self.mapping = mapping
         self.store = store
         self.negative_store = negative_store
         self.relative_accuracy = relative_accuracy
 
         self.zero_count = 0
-
-        gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
-        self.gamma = 1 + gamma_mantissa
-        gamma_ln = math.log1p(gamma_mantissa)
-        self.multiplier = 1.0 / gamma_ln
-        self._min_possible = np.finfo(np.float64).tiny * self.gamma
 
         self.count = 0
         self.min = float("+inf")
@@ -128,12 +125,10 @@ class BaseDDSketch:
     def add(self, val):
         """Add a value to the sketch."""
 
-        if val > self._min_possible:
-            key = int(math.ceil(math.log(val) * self.multiplier))
-            self.store.add(key)
-        elif val < -self._min_possible:
-            key = int(math.ceil(math.log(-val) * self.multiplier))
-            self.negative_store.add(key)
+        if val > self.mapping.min_possible:
+            self.store.add(self.mapping.key(val))
+        elif val < -self.mapping.min_possible:
+            self.negative_store.add(self.mapping.key(-val))
         else:
             self.zero_count += 1
 
@@ -159,15 +154,16 @@ class BaseDDSketch:
 
         rank = int(quantile * (self.count - 1) + 1)
         if rank <= self.negative_store.count:
-            key = self.negative_store.key_at_rank(rank, reverse=True)
-            quantile_value = -2 * pow(self.gamma, key) / (1 + self.gamma)
+            reversed_rank = self.negative_store.count + 1 - rank
+            key = self.negative_store.key_at_rank(reversed_rank)
+            quantile_value = -self.mapping.value(key)
         elif rank <= self.zero_count + self.negative_store.count:
             return 0
         else:
             key = self.store.key_at_rank(
                 rank - self.zero_count - self.negative_store.count
             )
-            quantile_value = 2 * pow(self.gamma, key) / (1 + self.gamma)
+            quantile_value = self.mapping.value(key)
 
         return max(quantile_value, self.min)
 
@@ -202,7 +198,7 @@ class BaseDDSketch:
 
     def mergeable(self, other):
         """Two sketches can be merged only if their gammas are equal."""
-        return self.gamma == other.gamma
+        return self.mapping.gamma == other.mapping.gamma
 
     def copy(self, sketch):
         """copy the input sketch into this one"""
@@ -217,9 +213,38 @@ class BaseDDSketch:
 
 class DDSketch(BaseDDSketch):
     """The default implementation of BaseDDSketch, with optimized memory usage at
-    the cost of lower ingestion speed, using a limited number of bins. When the
-    maximum number of bins is reached, bins with lowest indices are collapsed,
-    which causes the relative accuracy to be lost on lowest quantiles. For the
+    the cost of lower ingestion speed, using an unlimited number of bins. The
+    number of bins will not exceed a reasonable number unless the data is
+    distributed with tails heavier than any  subexponential.
+    (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    """
+
+    def __init__(self, relative_accuracy=None):
+
+        # Make sure the parameters are valid
+        if relative_accuracy is None:
+            relative_accuracy = DEFAULT_REL_ACC
+        if relative_accuracy <= 0 or relative_accuracy >= 1:
+            raise InvalidRelativeAccuracyException(
+                "Relative accuracy must be between 0 and 1."
+            )
+
+        mapping = LogarithmicMapping(relative_accuracy)
+        store = DenseStore()
+        negative_store = DenseStore()
+        super().__init__(
+            mapping=mapping,
+            store=store,
+            negative_store=negative_store,
+            relative_accuracy=relative_accuracy,
+        )
+
+
+class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
+    """Implementation of BaseDDSketch with optimized memory usage at the cost of
+    lower ingestion speed, using a limited number of bins. When the maximum
+    number of bins is reached, bins with lowest indices are collapsed, which
+    causes the relative accuracy to be lost on the lowest quantiles. For the
     default bin limit, collapsing is unlikely to occur unless the data is
     distributed with tails heavier than any
     subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
@@ -236,9 +261,43 @@ class DDSketch(BaseDDSketch):
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
 
+        mapping = LogarithmicMapping(relative_accuracy)
         store = CollapsingLowestDenseStore(bin_limit)
+        negative_store = CollapsingLowestDenseStore(bin_limit)
+        super().__init__(
+            mapping=mapping,
+            store=store,
+            negative_store=negative_store,
+            relative_accuracy=relative_accuracy,
+        )
+
+
+class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
+    """Implementation of BaseDDSketch with optimized memory usage at the cost of
+    lower ingestion speed, using a limited number of bins. When the maximum
+    number of bins is reached, bins with highest indices are collapsed, which
+    causes the relative accuracy to be lost on the highest quantiles. For the
+    default bin limit, collapsing is unlikely to occur unless the data is
+    distributed with tails heavier than any
+    subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    """
+
+    def __init__(self, relative_accuracy=None, bin_limit=None):
+
+        # Make sure the parameters are valid
+        if relative_accuracy is None or (
+            relative_accuracy <= 0 or relative_accuracy >= 1
+        ):
+            relative_accuracy = DEFAULT_REL_ACC
+
+        if bin_limit is None or bin_limit < 0:
+            bin_limit = DEFAULT_BIN_LIMIT
+
+        mapping = LogarithmicMapping(relative_accuracy)
+        store = CollapsingHighestDenseStore(bin_limit)
         negative_store = CollapsingHighestDenseStore(bin_limit)
         super().__init__(
+            mapping=mapping,
             store=store,
             negative_store=negative_store,
             relative_accuracy=relative_accuracy,

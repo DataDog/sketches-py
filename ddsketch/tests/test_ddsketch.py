@@ -5,7 +5,8 @@
 
 """Tests for DDSketch"""
 
-import unittest
+from abc import ABC, abstractmethod
+from unittest import TestCase
 
 import numpy as np
 
@@ -25,7 +26,11 @@ from datasets import (
     UniformZoomIn,
     UniformZoomOut,
 )
-from ddsketch.ddsketch import DDSketch
+from ddsketch.ddsketch import (
+    LogCollapsingHighestDenseDDSketch,
+    LogCollapsingLowestDenseDDSketch,
+    DDSketch,
+)
 
 test_quantiles = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
 test_sizes = [3, 5, 10, 100, 1000]
@@ -49,8 +54,13 @@ TEST_REL_ACC = 0.05
 TEST_BIN_LIMIT = 1024
 
 
-class TestDDSketch(unittest.TestCase):
-    """Class for testing DDSketch"""
+class TestDDSketches(ABC):
+    """AbstractBaseClass for testing DDSketch implementations"""
+
+    @staticmethod
+    @abstractmethod
+    def _new_dd_sketch():
+        """ create a new DDSketch of the appropriate type """
 
     def _evaluate_sketch_accuracy(self, sketch, data, eps):
         size = data.size
@@ -68,7 +78,7 @@ class TestDDSketch(unittest.TestCase):
         for dataset in datasets:
             for size in test_sizes:
                 data = dataset(size)
-                sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                sketch = self._new_dd_sketch()
                 for value in data.data:
                     sketch.add(value)
                 self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
@@ -78,10 +88,10 @@ class TestDDSketch(unittest.TestCase):
         parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
         for size in test_sizes:
             dataset = EmptyDataset(0)
-            target_sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+            target_sketch = self._new_dd_sketch()
             for params in parameters:
                 generator = Normal.from_params(params[0], params[1], size)
-                sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                sketch = self._new_dd_sketch()
                 for value in generator.data:
                     sketch.add(value)
                     dataset.add(value)
@@ -96,8 +106,8 @@ class TestDDSketch(unittest.TestCase):
         for _ in range(ntests):
             for size in test_sizes:
                 dataset = Lognormal(size)
-                sketch1 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
-                sketch2 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                sketch1 = self._new_dd_sketch()
+                sketch2 = self._new_dd_sketch()
                 for value in dataset.data:
                     if np.random.random() > 0.7:
                         sketch1.add(value)
@@ -112,10 +122,10 @@ class TestDDSketch(unittest.TestCase):
         test_datasets = [Normal, Exponential, Laplace, Bimodal]
         for _ in range(ntests):
             merged_dataset = EmptyDataset(0)
-            merged_sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+            merged_sketch = self._new_dd_sketch()
             for dataset in test_datasets:
                 generator = dataset(np.random.randint(0, 500))
-                sketch = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+                sketch = self._new_dd_sketch()
                 for value in generator.data:
                     sketch.add(value)
                     merged_dataset.add(value)
@@ -124,8 +134,8 @@ class TestDDSketch(unittest.TestCase):
 
     def test_consistent_merge(self):
         """Test that merge() calls do not modify the argument sketch."""
-        sketch1 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
-        sketch2 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+        sketch1 = self._new_dd_sketch()
+        sketch2 = self._new_dd_sketch()
         dataset = Normal(100)
         for value in dataset.data:
             sketch1.add(value)
@@ -159,7 +169,7 @@ class TestDDSketch(unittest.TestCase):
             + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
 
-        sketch3 = DDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+        sketch3 = self._new_dd_sketch()
         sketch3.merge(sketch2)
         # merging to an empty sketch does not change sketch2
         self.assertAlmostEqual(
@@ -167,3 +177,27 @@ class TestDDSketch(unittest.TestCase):
             [sketch2.get_quantile_value(q) for q in test_quantiles]
             + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
+
+
+class TestDDSketch(TestDDSketches, TestCase):
+    """Class for testing LogCollapsingLowestDenseDDSketch"""
+
+    @staticmethod
+    def _new_dd_sketch():
+        return DDSketch(TEST_REL_ACC)
+
+
+class TestLogCollapsingLowestDenseDDSketch(TestDDSketches, TestCase):
+    """Class for testing LogCollapsingLowestDenseDDSketch"""
+
+    @staticmethod
+    def _new_dd_sketch():
+        return LogCollapsingLowestDenseDDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+
+
+class TestLogCollapsingHighestDenseDDSketch(TestDDSketches, TestCase):
+    """Class for testing LogCollapsingHighestDenseDDSketch"""
+
+    @staticmethod
+    def _new_dd_sketch():
+        return LogCollapsingHighestDenseDDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)

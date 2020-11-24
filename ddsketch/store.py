@@ -150,20 +150,14 @@ class DenseStore(Store):
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
-    def key_at_rank(self, rank, reverse=False):
-        if reverse:
-            rank = self.count + 1 - rank
-
+    def key_at_rank(self, rank):
         running_ct = 0
         for i, bin_ct in enumerate(self.bins):
             running_ct += bin_ct
             if running_ct >= rank:
                 return i + self.offset
 
-        if reverse:
-            return self.min_key
-        else:
-            return self.max_key
+        return self.max_key
 
     def merge(self, store):
         if store.count == 0:
