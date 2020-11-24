@@ -10,7 +10,7 @@ is close to {@code v} with a relative error that is less than {@link #relativeAc
 
 In implementations of {@code IndexMapping}, there generally is a trade-off
 between the cost of computing index and the number of indices that are required
-to cover a given range of values (memory optimality). The mos* memory-optimal
+to cover a given range of values (memory optimality). The most memory-optimal
 mapping is the {@link LogarithmicMapping}, but it requires the costly evaluation
 of the arithm when computing the index. Other mappings can approximate the
 logarithmic mapping, while being less computonally costly. The following table
