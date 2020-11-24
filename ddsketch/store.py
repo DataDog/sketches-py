@@ -25,7 +25,7 @@ class Store(ABC):
         """the number of bins"""
 
     @abstractmethod
-    def add(self, key):
+    def add(self, key, weight=1.0):
         """Updates the counter at the specified index key, growing the number of bins if
         necessary."""
 
@@ -84,10 +84,10 @@ class DenseStore(Store):
         """the number of bins"""
         return len(self.bins)
 
-    def add(self, key):
+    def add(self, key, weight=1.0):
         idx = self._get_index(key)
-        self.bins[idx] += 1
-        self.count += 1
+        self.bins[idx] += weight
+        self.count += weight
 
     def _get_index(self, key):
         """calculate the bin index for the key, extending the range if necessary"""

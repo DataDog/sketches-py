@@ -122,19 +122,19 @@ class BaseDDSketch:
         """float: exact sum of the values added to the sketch"""
         return self._sum
 
-    def add(self, val):
+    def add(self, val, weight=1.0):
         """Add a value to the sketch."""
 
         if val > self.mapping.min_possible:
-            self.store.add(self.mapping.key(val))
+            self.store.add(self.mapping.key(val), weight)
         elif val < -self.mapping.min_possible:
-            self.negative_store.add(self.mapping.key(-val))
+            self.negative_store.add(self.mapping.key(-val), weight)
         else:
-            self.zero_count += 1
+            self.zero_count += weight
 
         # Keep track of summary stats
-        self.count += 1
-        self._sum += val
+        self.count += weight
+        self._sum += val * weight
         if val < self.min:
             self.min = val
         if val > self.max:

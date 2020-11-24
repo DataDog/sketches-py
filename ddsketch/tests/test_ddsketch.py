@@ -6,6 +6,7 @@
 """Tests for DDSketch"""
 
 from abc import ABC, abstractmethod
+from collections import Counter
 from unittest import TestCase
 
 import numpy as np
@@ -15,6 +16,7 @@ from datasets import (
     Constant,
     EmptyDataset,
     Exponential,
+    Integers,
     Lognormal,
     Laplace,
     Mixed,
@@ -48,6 +50,7 @@ datasets = [
     Bimodal,
     Trimodal,
     Mixed,
+    Integers,
 ]
 
 TEST_REL_ACC = 0.05
@@ -82,6 +85,14 @@ class TestDDSketches(ABC):
                 for value in data.data:
                     sketch.add(value)
                 self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
+
+    def test_add_multiple(self):
+        """Test DDSketch on values from various distributions"""
+        data = Integers(1000)
+        sketch = self._new_dd_sketch()
+        for value, count in Counter(data.data).items():
+            sketch.add(value, count)
+        self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
 
     def test_merge_equal(self):
         """Test merging equal-sized DDSketches """

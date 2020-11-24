@@ -319,3 +319,22 @@ class Trimodal(Dataset):
             yield np.random.normal(self.left_loc, self.left_std)
         else:
             yield np.random.exponential(scale=self.exp_scale)
+
+
+class Integers(Dataset):
+
+    loc = 4.3
+    scale = 5.0
+
+    @classmethod
+    def from_params(cls, loc, scale, n):
+        cls.loc = loc
+        cls.scale = scale
+        return cls(n)
+
+    @property
+    def name(self):
+        return "integers"
+
+    def populate(self):
+        return [int(x) for x in np.random.normal(loc=self.loc, scale=self.scale, size=self.size)]
