@@ -20,6 +20,10 @@ from datasets import (
     Lognormal,
     Laplace,
     Mixed,
+    NegativeUniformBackward,
+    NegativeUniformForward,
+    NumberLineBackward,
+    NumberLineForward,
     Normal,
     Trimodal,
     UniformBackward,
@@ -43,6 +47,10 @@ datasets = [
     UniformZoomOut,
     UniformSqrt,
     Constant,
+    NegativeUniformBackward,
+    NegativeUniformForward,
+    NumberLineBackward,
+    NumberLineForward,
     Exponential,
     Lognormal,
     Normal,
@@ -101,11 +109,11 @@ class TestDDSketches(ABC):
             sketch.add(value, 1.1)
         sketch.add(100, 110.0)
 
-        data_median = 100
+        data_median = 99
         sketch_median = sketch.get_quantile_value(0.5)
         err = abs(sketch_median - data_median)
         self.assertTrue(err - TEST_REL_ACC * abs(data_median) <= 1e-15)
-        self.assertAlmostEqual(sketch.num_values, 110*2)
+        self.assertAlmostEqual(sketch.num_values, 110 * 2)
         self.assertAlmostEqual(sketch.sum, 5445 + 11000)
         self.assertAlmostEqual(sketch.avg, 74.75)
 

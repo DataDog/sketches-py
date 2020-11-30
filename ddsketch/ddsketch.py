@@ -152,19 +152,17 @@ class BaseDDSketch:
         if quantile < 0 or quantile > 1 or self.count == 0:
             return np.NaN
 
-        rank = int(quantile * (self.count - 1) + 1)
-        if rank <= self.negative_store.count:
-            reversed_rank = self.negative_store.count + 1 - rank
-            key = self.negative_store.key_at_rank(reversed_rank)
+        rank = quantile * (self.count - 1)
+        if rank < self.negative_store.count:
+            key = self.negative_store.key_at_rank(rank, reverse=True)
             quantile_value = -self.mapping.value(key)
-        elif rank <= self.zero_count + self.negative_store.count:
+        elif rank < self.zero_count + self.negative_store.count:
             return 0
         else:
             key = self.store.key_at_rank(
                 rank - self.zero_count - self.negative_store.count
             )
             quantile_value = self.mapping.value(key)
-
         return max(quantile_value, self.min)
 
     def merge(self, sketch):

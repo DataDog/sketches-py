@@ -30,8 +30,17 @@ class Store(ABC):
         necessary."""
 
     @abstractmethod
-    def key_at_rank(self, rank):
-        """Return the key for the value at given rank"""
+    def key_at_rank(self, rank, reverse=True):
+        """Return the key for the value at given rank.
+        E.g., if the non-zero bins are [1, 1] for keys a and b with no offset
+        then key_at_rank(0) returns a and key_at_rank(1) returns b
+        If `reverse=True` then key_at_rank(1) returns b and key_at_rank(0) returns a
+
+        For decimal ranks the key boundaries are flipped:
+             key_at_rank(x)=a for x in [0, 1)
+             key_at_rank(x, reverse=True)=a for x in [0, 1)
+
+        """
 
     @abstractmethod
     def merge(self, store):
@@ -150,12 +159,20 @@ class DenseStore(Store):
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
-    def key_at_rank(self, rank):
-        running_ct = 0
-        for i, bin_ct in enumerate(self.bins):
-            running_ct += bin_ct
-            if running_ct >= rank:
-                return i + self.offset
+    def key_at_rank(self, rank, reverse=False):
+        if reverse:
+            reversed_rank = self.count - rank
+            running_ct = 0
+            for i, bin_ct in enumerate(self.bins):
+                running_ct += bin_ct
+                if running_ct >= reversed_rank:
+                    return i + self.offset
+        else:
+            running_ct = 0
+            for i, bin_ct in enumerate(self.bins):
+                running_ct += bin_ct
+                if running_ct > rank:
+                    return i + self.offset
 
         return self.max_key
 
