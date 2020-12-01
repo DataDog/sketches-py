@@ -33,17 +33,15 @@ class Store(ABC):
     def key_at_rank(self, rank, lower=True):
         """Return the key for the value at given rank.
 
-        E.g., if the non-zero bins are [1, 1, 1] for keys a, b, c with no offset
+        E.g., if the non-zero bins are [1, 1] for keys a, b with no offset
 
         if lower = True:
              key_at_rank(x) = a for x in [0, 1)
              key_at_rank(x) = b for x in [1, 2)
-             key_at_rank(x) = b for x in [2, 3)
 
         if lower = False:
              key_at_rank(x) = a for x in (-1, 0]
              key_at_rank(x) = b for x in (0, 1]
-             key_at_rank(x) = b for x in (0, 2]
         """
 
     @abstractmethod
