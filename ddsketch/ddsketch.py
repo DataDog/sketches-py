@@ -154,7 +154,8 @@ class BaseDDSketch:
 
         rank = quantile * (self.count - 1)
         if rank < self.negative_store.count:
-            key = self.negative_store.key_at_rank(rank, reverse=True)
+            reversed_rank = self.negative_store.count - rank
+            key = self.negative_store.key_at_rank(reversed_rank, base=1)
             quantile_value = -self.mapping.value(key)
         elif rank < self.zero_count + self.negative_store.count:
             return 0
