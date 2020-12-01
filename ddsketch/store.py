@@ -30,18 +30,20 @@ class Store(ABC):
         necessary."""
 
     @abstractmethod
-    def key_at_rank(self, rank, base=0):
+    def key_at_rank(self, rank, lower=True):
         """Return the key for the value at given rank.
 
-        E.g., if the non-zero bins are [1, 1] for keys a and b with no offset
+        E.g., if the non-zero bins are [1, 1, 1] for keys a, b, c with no offset
 
-        If base == 0:
+        if lower = True:
              key_at_rank(x) = a for x in [0, 1)
              key_at_rank(x) = b for x in [1, 2)
+             key_at_rank(x) = b for x in [2, 3)
 
-        If base == 1:
-             key_at_rank(x) = a for x in (0, 1]
-             key_at_rank(x) = b for x in (1, 2]
+        if lower = False:
+             key_at_rank(x) = a for x in (-1, 0]
+             key_at_rank(x) = b for x in (0, 1]
+             key_at_rank(x) = b for x in (0, 2]
         """
 
     @abstractmethod
@@ -161,11 +163,11 @@ class DenseStore(Store):
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
-    def key_at_rank(self, rank, base=0):
+    def key_at_rank(self, rank, lower=True):
         running_ct = 0
         for i, bin_ct in enumerate(self.bins):
             running_ct += bin_ct
-            if running_ct > rank or (base == 1 and running_ct==rank):
+            if (lower and running_ct > rank) or (not lower and running_ct >= rank + 1):
                 return i + self.offset
 
         return self.max_key

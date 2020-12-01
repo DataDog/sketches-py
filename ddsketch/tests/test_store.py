@@ -173,12 +173,16 @@ class TestDenseStore(TestStore, TestCase):
         store.add(100)
         self.assertEqual(store.key_at_rank(0), 4)
         self.assertEqual(store.key_at_rank(1), 10)
-        self.assertEqual(store.key_at_rank(1, base=1), 4)
-        self.assertEqual(store.key_at_rank(2, base=1), 10)
+        self.assertEqual(store.key_at_rank(2), 100)
+        self.assertEqual(store.key_at_rank(0, lower=False), 4)
+        self.assertEqual(store.key_at_rank(1, lower=False), 10)
+        self.assertEqual(store.key_at_rank(2, lower=False), 100)
         self.assertEqual(store.key_at_rank(0.5), 4)
         self.assertEqual(store.key_at_rank(1.5), 10)
-        self.assertEqual(store.key_at_rank(0.5, base=1), 4)
-        self.assertEqual(store.key_at_rank(1.5, base=1), 10)
+        self.assertEqual(store.key_at_rank(2.5), 100)
+        self.assertEqual(store.key_at_rank(-0.5, lower=False), 4)
+        self.assertEqual(store.key_at_rank(0.5, lower=False), 10)
+        self.assertEqual(store.key_at_rank(1.5, lower=False), 100)
 
     def test_extreme_values(self):
         """Override. DenseStore is not meant to be used with values that are extremely
