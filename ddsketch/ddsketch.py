@@ -37,24 +37,13 @@ DDSketch implementations are also available in:
 
 import numpy as np
 
+from .exception import IllegalArgumentException, UnequalSketchParametersException
 from .mapping import LogarithmicMapping
 from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
-
-
-class InvalidRelativeAccuracyException(Exception):
-    """thrown when trying to merge two sketches with different relative_accuracy
-    parameters
-    """
-
-
-class UnequalSketchParametersException(Exception):
-    """thrown when trying to merge two sketches with different relative_accuracy
-    parameters
-    """
 
 
 class BaseDDSketch:
@@ -124,6 +113,9 @@ class BaseDDSketch:
 
     def add(self, val, weight=1.0):
         """Add a value to the sketch."""
+
+        if weight <= 0.0:
+            raise IllegalArgumentException("weight must be a postive float")
 
         if val > self.mapping.min_possible:
             self.store.add(self.mapping.key(val), weight)
@@ -224,9 +216,7 @@ class DDSketch(BaseDDSketch):
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
         if relative_accuracy <= 0 or relative_accuracy >= 1:
-            raise InvalidRelativeAccuracyException(
-                "Relative accuracy must be between 0 and 1."
-            )
+            raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
 
         mapping = LogarithmicMapping(relative_accuracy)
         store = DenseStore()
