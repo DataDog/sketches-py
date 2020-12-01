@@ -11,6 +11,7 @@ from unittest import TestCase
 
 from ddsketch.mapping import (
     CubicallyInterpolatedMapping,
+    KeyMapping,
     LogarithmicMapping,
     LinearlyInterpolatedMapping,
 )
@@ -55,8 +56,10 @@ def _test_value_rel_acc(mapping, tester):
 class TestKeyMapping(ABC):
     """Abstract class for testing KeyMapping classes"""
 
+    offsets = [0, 1, -12.23, 7768.3]
+
     @abstractmethod
-    def mapping(self, relative_accuracy):
+    def mapping(self, relative_accuracy, offset):
         """ return the KeyMapping instance to be tested """
 
     def test_accuracy(self):
@@ -66,28 +69,45 @@ class TestKeyMapping(ABC):
         rel_acc = 1 - 1e-3
 
         while rel_acc >= min_rel_acc:
-            mapping = self.mapping(rel_acc)
+            mapping = self.mapping(rel_acc, offset=0.0)
             max_rel_acc = _test_value_rel_acc(mapping, self)
             self.assertLess(max_rel_acc, mapping.relative_accuracy)
             rel_acc *= rel_acc_mult
+
+    def test_offsets(self):
+        for offset in self.offsets:
+            mapping = self.mapping(0.01, offset=offset)
+            self.assertEqual(mapping.key(1), int(offset))
+
+    def test_round_trip(self):
+        rel_accs = [1e-1, 1e-2, 1e-8]
+        for rel_acc in rel_accs:
+            for offset in self.offsets:
+                mapping = self.mapping(rel_acc, offset)
+                round_trip_mapping = KeyMapping.from_proto(mapping.to_proto())
+                self.assertEqual(type(mapping), type(round_trip_mapping))
+                self.assertAlmostEqual(
+                    mapping.relative_accuracy, round_trip_mapping.relative_accuracy
+                )
+                self.assertAlmostEqual(mapping.value(0), round_trip_mapping.value(0))
 
 
 class TestLogarithmicMapping(TestKeyMapping, TestCase):
     """Class for testing LogarithmicMapping class"""
 
-    def mapping(self, relative_accuracy):
-        return LogarithmicMapping(relative_accuracy)
+    def mapping(self, relative_accuracy, offset):
+        return LogarithmicMapping(relative_accuracy, offset)
 
 
 class TestLinearlyInterpolatedMapping(TestKeyMapping, TestCase):
     """Class for testing LinearlyInterpolatedMapping class"""
 
-    def mapping(self, relative_accuracy):
-        return LinearlyInterpolatedMapping(relative_accuracy)
+    def mapping(self, relative_accuracy, offset):
+        return LinearlyInterpolatedMapping(relative_accuracy, offset)
 
 
 class TestCubicallyInterpolatedMapping(TestKeyMapping, TestCase):
     """Class for testing CubicallyInterpolatedMapping class"""  #
 
-    def mapping(self, relative_accuracy):
-        return CubicallyInterpolatedMapping(relative_accuracy)
+    def mapping(self, relative_accuracy, offset):
+        return CubicallyInterpolatedMapping(relative_accuracy, offset)

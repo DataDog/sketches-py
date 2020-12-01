@@ -10,11 +10,25 @@ otherwise."""
 from abc import ABC, abstractmethod
 import math
 
+import ddsketch.pb.ddsketch_pb2 as pb
+
+
 CHUNK_SIZE = 128
 
 
 class Store(ABC):
-    """The basic specification of a store"""
+    """The basic specification of a store
+
+    Attributes:
+        count (float): the sum of the counts for the bins
+        min_key (int): the minimum key bin
+        max_key (int): the maximum key bin
+    """
+
+    def __init__(self):
+        self.count = 0
+        self.min_key = float("+inf")
+        self.max_key = float("-inf")
 
     @abstractmethod
     def copy(self, store):
@@ -50,6 +64,15 @@ class Store(ABC):
         add operations that have *been run on the other store on this one.
         """
 
+    @abstractmethod
+    def to_proto(self):
+        """serialize to protobuf"""
+
+    @classmethod
+    @abstractmethod
+    def from_proto(cls, proto):
+        """deserialize from protobuf"""
+
 
 class DenseStore(Store):
     """A dense store that keeps all the bins between the bin for the min_key and the
@@ -67,18 +90,16 @@ class DenseStore(Store):
     """
 
     def __init__(self, chunk_size=CHUNK_SIZE):
-        self.chunk_size = chunk_size
+        super().__init__()
 
-        self.count = 0
-        self.min_key = float("+inf")
-        self.max_key = float("-inf")
+        self.chunk_size = chunk_size
         self.offset = 0
         self.bins = []
 
     def __repr__(self):
         repr_str = "{"
         for i, sbin in enumerate(self.bins):
-            repr_str += "{}: {}, ".format(i + self.offset, sbin)
+            repr_str += f"{i+self.offset}: {sbin}, "
         repr_str += (
             f"}}, min_key:{self.min_key}, max_key:{self.max_key}, offset:{self.offset}"
         )
@@ -185,6 +206,21 @@ class DenseStore(Store):
             self.bins[key - self.offset] += store.bins[key - store.offset]
 
         self.count += store.count
+
+    def to_proto(self):
+        return pb.Store(
+            contiguousBinCounts=self.bins, contiguousBinIndexOffset=self.offset
+        )
+
+    @classmethod
+    def from_proto(cls, proto):
+        store = cls()
+        index = proto.contiguousBinIndexOffset
+        store.offset = index
+        for count in proto.contiguousBinCounts:
+            store.add(index, count)
+            index += 1
+        return store
 
 
 class CollapsingLowestDenseStore(DenseStore):

@@ -152,6 +152,7 @@ class TestDenseStore(TestStore, TestCase):
         for val in values:
             store.add(val)
         self._test_values(store, values)
+        self._test_values(DenseStore.from_proto(store.to_proto()), values)
 
     def _test_merging(self, list_values):
         store = DenseStore()

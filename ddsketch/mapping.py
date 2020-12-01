@@ -22,13 +22,16 @@ import math
 
 import numpy as np
 
+import ddsketch.pb.ddsketch_pb2 as pb
+from .exception import IllegalArgumentException
+
 
 class KeyMapping(ABC):
     """
     Args:
         relative_accuracy (float): the accuracy guarantee; referred to as alpha
             in the paper. (0. < alpha < 1.)
-
+        offset (float): an offset that can be used to shift all bin keys
     Attributes:
         gamma (float): the base for the exponential buckets
             gamma = (1 + alpha) / (1 - alpha)
@@ -38,13 +41,22 @@ class KeyMapping(ABC):
             initially, _multiplier = 1 / log(gamma)
     """
 
-    def __init__(self, relative_accuracy):
+    def __init__(self, relative_accuracy, offset=0.0):
+        if relative_accuracy <= 0 or relative_accuracy >= 1:
+            raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
         self.relative_accuracy = relative_accuracy
+        self._offset = offset
+
         gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + gamma_mantissa
         self._multiplier = 1 / math.log1p(gamma_mantissa)
         self.min_possible = np.finfo(np.float64).tiny * self.gamma
         self.max_possible = np.finfo(np.float64).max / self.gamma
+
+    @classmethod
+    def from_gamma_offset(cls, gamma, offset):
+        relative_accuracy = (gamma - 1.0) / (gamma + 1.0)
+        return cls(relative_accuracy, offset=offset)
 
     @abstractmethod
     def _log_gamma(self, value):
@@ -61,7 +73,7 @@ class KeyMapping(ABC):
         Returns:
             int: the key specifying the bucket for value
         """
-        return int(math.ceil(self._log_gamma(value)))
+        return int(math.ceil(self._log_gamma(value)) + self._offset)
 
     def value(self, key):
         """
@@ -70,7 +82,35 @@ class KeyMapping(ABC):
         Returns:
             float: the value represented by the bucket specified by the key
         """
-        return self._pow_gamma(key) * (2.0 / (1 + self.gamma))
+        return self._pow_gamma(key - self._offset) * (2.0 / (1 + self.gamma))
+
+    @abstractmethod
+    def _proto_interpolation(self):
+        """ return pb.IndexMapping.Interpolation.XXX """
+
+    def to_proto(self):
+        """serialize to protobuf"""
+        return pb.IndexMapping(
+            gamma=self.gamma,
+            indexOffset=self._offset,
+            interpolation=self._proto_interpolation(),
+        )
+
+    @classmethod
+    def from_proto(cls, proto):
+        """deserialize from protobuf"""
+        if proto.interpolation == pb.IndexMapping.Interpolation.NONE:
+            return LogarithmicMapping.from_gamma_offset(proto.gamma, proto.indexOffset)
+        elif proto.interpolation == pb.IndexMapping.Interpolation.LINEAR:
+            return LinearlyInterpolatedMapping.from_gamma_offset(
+                proto.gamma, proto.indexOffset
+            )
+        elif proto.interpolation == pb.IndexMapping.Interpolation.CUBIC:
+            return CubicallyInterpolatedMapping.from_gamma_offset(
+                proto.gamma, proto.indexOffset
+            )
+        else:
+            raise IllegalArgumentException("unrecognized interpolation")
 
 
 class LogarithmicMapping(KeyMapping):
@@ -79,8 +119,8 @@ class LogarithmicMapping(KeyMapping):
     done by logarithmically mapping floating-point values to integers.
     """
 
-    def __init__(self, relative_accuracy):
-        super().__init__(relative_accuracy)
+    def __init__(self, relative_accuracy, offset=0.0):
+        super().__init__(relative_accuracy, offset=offset)
         self._multiplier *= math.log(2)
 
     def _log_gamma(self, value):
@@ -88,6 +128,9 @@ class LogarithmicMapping(KeyMapping):
 
     def _pow_gamma(self, value):
         return np.exp2(value / self._multiplier)
+
+    def _proto_interpolation(self):
+        return pb.IndexMapping.Interpolation.NONE
 
 
 class LinearlyInterpolatedMapping(KeyMapping):
@@ -120,6 +163,9 @@ class LinearlyInterpolatedMapping(KeyMapping):
     def _pow_gamma(self, value):
         return self._exp2_approx(value / self._multiplier)
 
+    def _proto_interpolation(self):
+        return pb.IndexMapping.Interpolation.LINEAR
+
 
 class CubicallyInterpolatedMapping(KeyMapping):
     """A fast KeyMapping that approximates the memory-optimal LogarithmicMapping by
@@ -135,8 +181,8 @@ class CubicallyInterpolatedMapping(KeyMapping):
     B = -3 / 5
     C = 10 / 7
 
-    def __init__(self, relative_accuracy):
-        super().__init__(relative_accuracy)
+    def __init__(self, relative_accuracy, offset=0.0):
+        super().__init__(relative_accuracy, offset=offset)
         self._multiplier /= self.C
 
     def _cubic_log2_approx(self, value):
@@ -171,3 +217,6 @@ class CubicallyInterpolatedMapping(KeyMapping):
 
     def _pow_gamma(self, value):
         return self._cubic_exp2_approx(value / self._multiplier)
+
+    def _proto_interpolation(self):
+        return pb.IndexMapping.Interpolation.CUBIC
