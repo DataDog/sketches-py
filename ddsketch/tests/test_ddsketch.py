@@ -6,6 +6,7 @@
 """Tests for DDSketch"""
 
 from abc import ABC, abstractmethod
+from collections import Counter
 from unittest import TestCase
 
 import numpy as np
@@ -15,9 +16,14 @@ from datasets import (
     Constant,
     EmptyDataset,
     Exponential,
+    Integers,
     Lognormal,
     Laplace,
     Mixed,
+    NegativeUniformBackward,
+    NegativeUniformForward,
+    NumberLineBackward,
+    NumberLineForward,
     Normal,
     Trimodal,
     UniformBackward,
@@ -41,6 +47,10 @@ datasets = [
     UniformZoomOut,
     UniformSqrt,
     Constant,
+    NegativeUniformBackward,
+    NegativeUniformForward,
+    NumberLineBackward,
+    NumberLineForward,
     Exponential,
     Lognormal,
     Normal,
@@ -48,6 +58,7 @@ datasets = [
     Bimodal,
     Trimodal,
     Mixed,
+    Integers,
 ]
 
 TEST_REL_ACC = 0.05
@@ -68,7 +79,7 @@ class TestDDSketches(ABC):
             sketch_q = sketch.get_quantile_value(quantile)
             data_q = data.quantile(quantile)
             err = abs(sketch_q - data_q)
-            np.testing.assert_equal(err - eps * abs(data_q) <= 1e-15, True)
+            self.assertTrue(err - eps * abs(data_q) <= 1e-15)
         self.assertEqual(sketch.num_values, size)
         self.assertAlmostEqual(sketch.sum, data.sum)
         self.assertAlmostEqual(sketch.avg, data.avg)
@@ -82,6 +93,29 @@ class TestDDSketches(ABC):
                 for value in data.data:
                     sketch.add(value)
                 self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
+
+    def test_add_multiple(self):
+        """Test DDSketch on adding integer weighted values"""
+        data = Integers(1000)
+        sketch = self._new_dd_sketch()
+        for value, count in Counter(data.data).items():
+            sketch.add(value, count)
+        self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
+
+    def test_add_decimal(self):
+        """Test DDSketch on adding decimal weighted values"""
+        sketch = self._new_dd_sketch()
+        for value in range(100):
+            sketch.add(value, 1.1)
+        sketch.add(100, 110.0)
+
+        data_median = 99
+        sketch_median = sketch.get_quantile_value(0.5)
+        err = abs(sketch_median - data_median)
+        self.assertTrue(err - TEST_REL_ACC * abs(data_median) <= 1e-15)
+        self.assertAlmostEqual(sketch.num_values, 110 * 2)
+        self.assertAlmostEqual(sketch.sum, 5445 + 11000)
+        self.assertAlmostEqual(sketch.avg, 74.75)
 
     def test_merge_equal(self):
         """Test merging equal-sized DDSketches """

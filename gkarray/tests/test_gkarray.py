@@ -34,7 +34,7 @@ def _evaluate_sketch_accuracy(sketch, data, eps):
     n = data.size
     for q in test_quantiles:
         sketch_rank = data.rank(sketch.quantile(q))
-        data_rank = int(q * (n - 1) + 1)
+        data_rank = int(q * (n - 1))
         err = abs(sketch_rank - data_rank)
         np.testing.assert_equal(err - eps * n <= 0, True)
     np.testing.assert_equal(sketch.num_values, n)

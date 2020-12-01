@@ -37,24 +37,13 @@ DDSketch implementations are also available in:
 
 import numpy as np
 
+from .exception import IllegalArgumentException, UnequalSketchParametersException
 from .mapping import LogarithmicMapping
 from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
-
-
-class InvalidRelativeAccuracyException(Exception):
-    """thrown when trying to merge two sketches with different relative_accuracy
-    parameters
-    """
-
-
-class UnequalSketchParametersException(Exception):
-    """thrown when trying to merge two sketches with different relative_accuracy
-    parameters
-    """
 
 
 class BaseDDSketch:
@@ -122,19 +111,22 @@ class BaseDDSketch:
         """float: exact sum of the values added to the sketch"""
         return self._sum
 
-    def add(self, val):
+    def add(self, val, weight=1.0):
         """Add a value to the sketch."""
 
+        if weight <= 0.0:
+            raise IllegalArgumentException("weight must be a postive float")
+
         if val > self.mapping.min_possible:
-            self.store.add(self.mapping.key(val))
+            self.store.add(self.mapping.key(val), weight)
         elif val < -self.mapping.min_possible:
-            self.negative_store.add(self.mapping.key(-val))
+            self.negative_store.add(self.mapping.key(-val), weight)
         else:
-            self.zero_count += 1
+            self.zero_count += weight
 
         # Keep track of summary stats
-        self.count += 1
-        self._sum += val
+        self.count += weight
+        self._sum += val * weight
         if val < self.min:
             self.min = val
         if val > self.max:
@@ -152,19 +144,18 @@ class BaseDDSketch:
         if quantile < 0 or quantile > 1 or self.count == 0:
             return np.NaN
 
-        rank = int(quantile * (self.count - 1) + 1)
-        if rank <= self.negative_store.count:
-            reversed_rank = self.negative_store.count + 1 - rank
-            key = self.negative_store.key_at_rank(reversed_rank)
+        rank = quantile * (self.count - 1)
+        if rank < self.negative_store.count:
+            reversed_rank = self.negative_store.count - rank - 1
+            key = self.negative_store.key_at_rank(reversed_rank, lower=False)
             quantile_value = -self.mapping.value(key)
-        elif rank <= self.zero_count + self.negative_store.count:
+        elif rank < self.zero_count + self.negative_store.count:
             return 0
         else:
             key = self.store.key_at_rank(
                 rank - self.zero_count - self.negative_store.count
             )
             quantile_value = self.mapping.value(key)
-
         return max(quantile_value, self.min)
 
     def merge(self, sketch):
@@ -225,9 +216,7 @@ class DDSketch(BaseDDSketch):
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
         if relative_accuracy <= 0 or relative_accuracy >= 1:
-            raise InvalidRelativeAccuracyException(
-                "Relative accuracy must be between 0 and 1."
-            )
+            raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
 
         mapping = LogarithmicMapping(relative_accuracy)
         store = DenseStore()

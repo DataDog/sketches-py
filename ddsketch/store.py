@@ -25,13 +25,24 @@ class Store(ABC):
         """the number of bins"""
 
     @abstractmethod
-    def add(self, key):
+    def add(self, key, weight=1.0):
         """Updates the counter at the specified index key, growing the number of bins if
         necessary."""
 
     @abstractmethod
-    def key_at_rank(self, rank):
-        """Return the key for the value at given rank"""
+    def key_at_rank(self, rank, lower=True):
+        """Return the key for the value at given rank.
+
+        E.g., if the non-zero bins are [1, 1] for keys a, b with no offset
+
+        if lower = True:
+             key_at_rank(x) = a for x in [0, 1)
+             key_at_rank(x) = b for x in [1, 2)
+
+        if lower = False:
+             key_at_rank(x) = a for x in (-1, 0]
+             key_at_rank(x) = b for x in (0, 1]
+        """
 
     @abstractmethod
     def merge(self, store):
@@ -84,10 +95,10 @@ class DenseStore(Store):
         """the number of bins"""
         return len(self.bins)
 
-    def add(self, key):
+    def add(self, key, weight=1.0):
         idx = self._get_index(key)
-        self.bins[idx] += 1
-        self.count += 1
+        self.bins[idx] += weight
+        self.count += weight
 
     def _get_index(self, key):
         """calculate the bin index for the key, extending the range if necessary"""
@@ -150,11 +161,11 @@ class DenseStore(Store):
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
-    def key_at_rank(self, rank):
+    def key_at_rank(self, rank, lower=True):
         running_ct = 0
         for i, bin_ct in enumerate(self.bins):
             running_ct += bin_ct
-            if running_ct >= rank:
+            if (lower and running_ct > rank) or (not lower and running_ct >= rank + 1):
                 return i + self.offset
 
         return self.max_key

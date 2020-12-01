@@ -22,14 +22,14 @@ class Dataset(ABC):
     def rank(self, value):
         lower = np.array(sorted(self.data)) < value
         if np.all(lower):
-            return self.size
+            return self.size - 1
         else:
-            return np.argmin(lower) + 1
+            return np.argmin(lower)
 
     def quantile(self, q):
         self.data.sort()
-        rank = int(q * (self.size - 1) + 1)
-        return self.data[rank - 1]
+        rank = int(q * (self.size - 1))
+        return self.data[rank]
 
     @property
     def sum(self):
@@ -88,6 +88,58 @@ class UniformBackward(Dataset):
 
     def generate(self):
         for x in range(self.size, 0, -1):
+            yield x
+
+
+class NegativeUniformForward(Dataset):
+    @property
+    def name(self):
+        return "negative_uniform_forward"
+
+    def populate(self):
+        return list(self.generate())
+
+    def generate(self):
+        for x in range(self.size, 0, -1):
+            yield -x
+
+
+class NegativeUniformBackward(Dataset):
+    @property
+    def name(self):
+        return "negative_uniform_backward"
+
+    def populate(self):
+        return list(self.generate())
+
+    def generate(self):
+        for x in range(self.size):
+            yield -x
+
+
+class NumberLineForward(Dataset):
+    @property
+    def name(self):
+        return "number_line_forward"
+
+    def populate(self):
+        return list(self.generate())
+
+    def generate(self):
+        for x in range(-self.size // 2 + 1, self.size // 2 + 1, 1):
+            yield x
+
+
+class NumberLineBackward(Dataset):
+    @property
+    def name(self):
+        return "number_line_backward"
+
+    def populate(self):
+        return list(self.generate())
+
+    def generate(self):
+        for x in range(self.size // 2, -self.size // 2, -1):
             yield x
 
 
@@ -319,3 +371,25 @@ class Trimodal(Dataset):
             yield np.random.normal(self.left_loc, self.left_std)
         else:
             yield np.random.exponential(scale=self.exp_scale)
+
+
+class Integers(Dataset):
+
+    loc = 4.3
+    scale = 5.0
+
+    @classmethod
+    def from_params(cls, loc, scale, n):
+        cls.loc = loc
+        cls.scale = scale
+        return cls(n)
+
+    @property
+    def name(self):
+        return "integers"
+
+    def populate(self):
+        return [
+            int(x)
+            for x in np.random.normal(loc=self.loc, scale=self.scale, size=self.size)
+        ]
