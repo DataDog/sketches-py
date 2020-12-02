@@ -241,9 +241,6 @@ class DDSketch(BaseDDSketch):
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
 
-        if relative_accuracy <= 0 or relative_accuracy >= 1:
-            raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
-
         mapping = LogarithmicMapping(relative_accuracy)
         store = DenseStore()
         negative_store = DenseStore()
