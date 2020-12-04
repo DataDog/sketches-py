@@ -33,9 +33,10 @@ from datasets import (
     UniformZoomOut,
 )
 from ddsketch.ddsketch import (
+    BaseDDSketch,
+    DDSketch,
     LogCollapsingHighestDenseDDSketch,
     LogCollapsingLowestDenseDDSketch,
-    DDSketch,
 )
 
 test_quantiles = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
@@ -73,7 +74,7 @@ class TestDDSketches(ABC):
     def _new_dd_sketch():
         """ create a new DDSketch of the appropriate type """
 
-    def _evaluate_sketch_accuracy(self, sketch, data, eps):
+    def _evaluate_sketch_accuracy(self, sketch, data, eps, summary_stats=True):
         size = data.size
         for quantile in test_quantiles:
             sketch_q = sketch.get_quantile_value(quantile)
@@ -81,8 +82,9 @@ class TestDDSketches(ABC):
             err = abs(sketch_q - data_q)
             self.assertTrue(err - eps * abs(data_q) <= 1e-15)
         self.assertEqual(sketch.num_values, size)
-        self.assertAlmostEqual(sketch.sum, data.sum)
-        self.assertAlmostEqual(sketch.avg, data.avg)
+        if summary_stats:
+            self.assertAlmostEqual(sketch.sum, data.sum)
+            self.assertAlmostEqual(sketch.avg, data.avg)
 
     def test_distributions(self):
         """Test DDSketch on values from various distributions"""
@@ -93,6 +95,12 @@ class TestDDSketches(ABC):
                 for value in data.data:
                     sketch.add(value)
                 self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
+
+                # test protobuf round trip
+                round_trip_sketch = BaseDDSketch.from_proto(sketch.to_proto())
+                self._evaluate_sketch_accuracy(
+                    round_trip_sketch, data, TEST_REL_ACC, summary_stats=False
+                )
 
     def test_add_multiple(self):
         """Test DDSketch on adding integer weighted values"""

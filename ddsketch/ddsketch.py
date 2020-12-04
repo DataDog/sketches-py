@@ -37,8 +37,9 @@ DDSketch implementations are also available in:
 
 import numpy as np
 
+import ddsketch.pb.ddsketch_pb2 as pb
 from .exception import IllegalArgumentException, UnequalSketchParametersException
-from .mapping import LogarithmicMapping
+from .mapping import KeyMapping, LogarithmicMapping
 from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
@@ -47,17 +48,17 @@ DEFAULT_BIN_LIMIT = 2048
 
 
 class BaseDDSketch:
-    """The base implementation of DDSketch with no storage specified.
+    """The base implementation of DDSketch with neither mapping nor storage specified.
 
     Args:
         mapping (store.Mapping): map btw values and store bins
         store (store.Store): storage for positive values
         negative_store (store.Store): storage for negative values
-        relative_accuracty (float): the accuracy guarantee; referred to as alpha
-            in the paper. (0. < alpha < 1.)
+        zero_count (int): The count of zero values
 
     Attributes:
-        zero_count (int): The count of zero values
+        relative_accuracty (float): the accuracy guarantee; referred to as alpha
+            in the paper. (0. < alpha < 1.)
 
         count: the number of values seen by the sketch
         min: the minimum value seen by the sketch
@@ -70,16 +71,15 @@ class BaseDDSketch:
         mapping,
         store,
         negative_store,
-        relative_accuracy,
+        zero_count,
     ):
         self.mapping = mapping
         self.store = store
         self.negative_store = negative_store
-        self.relative_accuracy = relative_accuracy
+        self.zero_count = zero_count
 
-        self.zero_count = 0
-
-        self.count = 0
+        self.relative_accuracy = mapping.relative_accuracy
+        self.count = self.negative_store.count + self.zero_count + self.store.count
         self.min = float("+inf")
         self.max = float("-inf")
         self._sum = 0.0
@@ -98,7 +98,7 @@ class BaseDDSketch:
 
     @property
     def num_values(self):
-        """int: number of values in the sketch"""
+        """float: number of values in the sketch"""
         return self.count
 
     @property
@@ -113,7 +113,6 @@ class BaseDDSketch:
 
     def add(self, val, weight=1.0):
         """Add a value to the sketch."""
-
         if weight <= 0.0:
             raise IllegalArgumentException("weight must be a postive float")
 
@@ -156,7 +155,7 @@ class BaseDDSketch:
                 rank - self.zero_count - self.negative_store.count
             )
             quantile_value = self.mapping.value(key)
-        return max(quantile_value, self.min)
+        return quantile_value
 
     def merge(self, sketch):
         """Merges the other sketch into this one. After this operation, this sketch
@@ -201,6 +200,32 @@ class BaseDDSketch:
         self.count = sketch.count
         self._sum = sketch.sum
 
+    def to_proto(self):
+        """serialize to protobuf"""
+        return pb.DDSketch(
+            mapping=self.mapping.to_proto(),
+            positiveValues=self.store.to_proto(),
+            negativeValues=self.negative_store.to_proto(),
+            zeroCount=self.zero_count,
+        )
+
+    @classmethod
+    def from_proto(cls, proto):
+        """deserialize from protobuf
+
+        N.B., The current protobuf loses any min/max/sum/avg information.
+        """
+        mapping = KeyMapping.from_proto(proto.mapping)
+        negative_store = DenseStore.from_proto(proto.negativeValues)
+        store = DenseStore.from_proto(proto.positiveValues)
+        zero_count = proto.zeroCount
+        return BaseDDSketch(
+            mapping=mapping,
+            store=store,
+            negative_store=negative_store,
+            zero_count=zero_count,
+        )
+
 
 class DDSketch(BaseDDSketch):
     """The default implementation of BaseDDSketch, with optimized memory usage at
@@ -215,17 +240,12 @@ class DDSketch(BaseDDSketch):
         # Make sure the parameters are valid
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
-        if relative_accuracy <= 0 or relative_accuracy >= 1:
-            raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
 
         mapping = LogarithmicMapping(relative_accuracy)
         store = DenseStore()
         negative_store = DenseStore()
         super().__init__(
-            mapping=mapping,
-            store=store,
-            negative_store=negative_store,
-            relative_accuracy=relative_accuracy,
+            mapping=mapping, store=store, negative_store=negative_store, zero_count=0
         )
 
 
@@ -242,9 +262,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
     def __init__(self, relative_accuracy=None, bin_limit=None):
 
         # Make sure the parameters are valid
-        if relative_accuracy is None or (
-            relative_accuracy <= 0 or relative_accuracy >= 1
-        ):
+        if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
 
         if bin_limit is None or bin_limit < 0:
@@ -257,7 +275,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
             mapping=mapping,
             store=store,
             negative_store=negative_store,
-            relative_accuracy=relative_accuracy,
+            zero_count=0,
         )
 
 
@@ -274,9 +292,7 @@ class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
     def __init__(self, relative_accuracy=None, bin_limit=None):
 
         # Make sure the parameters are valid
-        if relative_accuracy is None or (
-            relative_accuracy <= 0 or relative_accuracy >= 1
-        ):
+        if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
 
         if bin_limit is None or bin_limit < 0:
@@ -289,5 +305,5 @@ class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
             mapping=mapping,
             store=store,
             negative_store=negative_store,
-            relative_accuracy=relative_accuracy,
+            zero_count=0,
         )
