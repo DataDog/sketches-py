@@ -11,7 +11,6 @@ from unittest import TestCase
 
 from ddsketch.mapping import (
     CubicallyInterpolatedMapping,
-    KeyMapping,
     LogarithmicMapping,
     LinearlyInterpolatedMapping,
 )
@@ -75,21 +74,10 @@ class TestKeyMapping(ABC):
             rel_acc *= rel_acc_mult
 
     def test_offsets(self):
+        """ test offsets """
         for offset in self.offsets:
             mapping = self.mapping(0.01, offset=offset)
             self.assertEqual(mapping.key(1), int(offset))
-
-    def test_round_trip(self):
-        rel_accs = [1e-1, 1e-2, 1e-8]
-        for rel_acc in rel_accs:
-            for offset in self.offsets:
-                mapping = self.mapping(rel_acc, offset)
-                round_trip_mapping = KeyMapping.from_proto(mapping.to_proto())
-                self.assertEqual(type(mapping), type(round_trip_mapping))
-                self.assertAlmostEqual(
-                    mapping.relative_accuracy, round_trip_mapping.relative_accuracy
-                )
-                self.assertAlmostEqual(mapping.value(0), round_trip_mapping.value(0))
 
 
 class TestLogarithmicMapping(TestKeyMapping, TestCase):

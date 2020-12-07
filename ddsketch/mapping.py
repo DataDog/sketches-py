@@ -22,7 +22,6 @@ import math
 
 import numpy as np
 
-import ddsketch.pb.ddsketch_pb2 as pb
 from .exception import IllegalArgumentException
 
 
@@ -55,6 +54,7 @@ class KeyMapping(ABC):
 
     @classmethod
     def from_gamma_offset(cls, gamma, offset):
+        """ Constructor used by pb.proto """
         relative_accuracy = (gamma - 1.0) / (gamma + 1.0)
         return cls(relative_accuracy, offset=offset)
 
@@ -84,34 +84,6 @@ class KeyMapping(ABC):
         """
         return self._pow_gamma(key - self._offset) * (2.0 / (1 + self.gamma))
 
-    @abstractmethod
-    def _proto_interpolation(self):
-        """ return pb.IndexMapping.Interpolation.XXX """
-
-    def to_proto(self):
-        """serialize to protobuf"""
-        return pb.IndexMapping(
-            gamma=self.gamma,
-            indexOffset=self._offset,
-            interpolation=self._proto_interpolation(),
-        )
-
-    @classmethod
-    def from_proto(cls, proto):
-        """deserialize from protobuf"""
-        if proto.interpolation == pb.IndexMapping.Interpolation.NONE:
-            return LogarithmicMapping.from_gamma_offset(proto.gamma, proto.indexOffset)
-        elif proto.interpolation == pb.IndexMapping.Interpolation.LINEAR:
-            return LinearlyInterpolatedMapping.from_gamma_offset(
-                proto.gamma, proto.indexOffset
-            )
-        elif proto.interpolation == pb.IndexMapping.Interpolation.CUBIC:
-            return CubicallyInterpolatedMapping.from_gamma_offset(
-                proto.gamma, proto.indexOffset
-            )
-        else:
-            raise IllegalArgumentException("unrecognized interpolation")
-
 
 class LogarithmicMapping(KeyMapping):
     """A memory-optimal KeyMapping, i.e., given a targeted relative accuracy, it
@@ -128,9 +100,6 @@ class LogarithmicMapping(KeyMapping):
 
     def _pow_gamma(self, value):
         return np.exp2(value / self._multiplier)
-
-    def _proto_interpolation(self):
-        return pb.IndexMapping.Interpolation.NONE
 
 
 class LinearlyInterpolatedMapping(KeyMapping):
@@ -162,9 +131,6 @@ class LinearlyInterpolatedMapping(KeyMapping):
 
     def _pow_gamma(self, value):
         return self._exp2_approx(value / self._multiplier)
-
-    def _proto_interpolation(self):
-        return pb.IndexMapping.Interpolation.LINEAR
 
 
 class CubicallyInterpolatedMapping(KeyMapping):
@@ -217,6 +183,3 @@ class CubicallyInterpolatedMapping(KeyMapping):
 
     def _pow_gamma(self, value):
         return self._cubic_exp2_approx(value / self._multiplier)
-
-    def _proto_interpolation(self):
-        return pb.IndexMapping.Interpolation.CUBIC

@@ -37,9 +37,8 @@ DDSketch implementations are also available in:
 
 import numpy as np
 
-import ddsketch.pb.ddsketch_pb2 as pb
 from .exception import IllegalArgumentException, UnequalSketchParametersException
-from .mapping import KeyMapping, LogarithmicMapping
+from .mapping import LogarithmicMapping
 from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
@@ -199,32 +198,6 @@ class BaseDDSketch:
         self.max = sketch.max
         self.count = sketch.count
         self._sum = sketch.sum
-
-    def to_proto(self):
-        """serialize to protobuf"""
-        return pb.DDSketch(
-            mapping=self.mapping.to_proto(),
-            positiveValues=self.store.to_proto(),
-            negativeValues=self.negative_store.to_proto(),
-            zeroCount=self.zero_count,
-        )
-
-    @classmethod
-    def from_proto(cls, proto):
-        """deserialize from protobuf
-
-        N.B., The current protobuf loses any min/max/sum/avg information.
-        """
-        mapping = KeyMapping.from_proto(proto.mapping)
-        negative_store = DenseStore.from_proto(proto.negativeValues)
-        store = DenseStore.from_proto(proto.positiveValues)
-        zero_count = proto.zeroCount
-        return BaseDDSketch(
-            mapping=mapping,
-            store=store,
-            negative_store=negative_store,
-            zero_count=zero_count,
-        )
 
 
 class DDSketch(BaseDDSketch):
