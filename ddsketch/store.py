@@ -10,8 +10,6 @@ otherwise."""
 from abc import ABC, abstractmethod
 import math
 
-import ddsketch.pb.ddsketch_pb2 as pb
-
 
 CHUNK_SIZE = 128
 
@@ -63,15 +61,6 @@ class Store(ABC):
         """Merge another store into this one. This should be equivalent as running the
         add operations that have *been run on the other store on this one.
         """
-
-    @abstractmethod
-    def to_proto(self):
-        """serialize to protobuf"""
-
-    @classmethod
-    @abstractmethod
-    def from_proto(cls, proto):
-        """deserialize from protobuf"""
 
 
 class DenseStore(Store):
@@ -206,21 +195,6 @@ class DenseStore(Store):
             self.bins[key - self.offset] += store.bins[key - store.offset]
 
         self.count += store.count
-
-    def to_proto(self):
-        return pb.Store(
-            contiguousBinCounts=self.bins, contiguousBinIndexOffset=self.offset
-        )
-
-    @classmethod
-    def from_proto(cls, proto):
-        store = cls()
-        index = proto.contiguousBinIndexOffset
-        store.offset = index
-        for count in proto.contiguousBinCounts:
-            store.add(index, count)
-            index += 1
-        return store
 
 
 class CollapsingLowestDenseStore(DenseStore):

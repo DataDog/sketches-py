@@ -33,15 +33,14 @@ from datasets import (
     UniformZoomOut,
 )
 from ddsketch.ddsketch import (
-    BaseDDSketch,
     DDSketch,
     LogCollapsingHighestDenseDDSketch,
     LogCollapsingLowestDenseDDSketch,
 )
 
-test_quantiles = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
-test_sizes = [3, 5, 10, 100, 1000]
-datasets = [
+TEST_QUANTILES = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
+TEST_SIZES = [3, 5, 10, 100, 1000]
+DATASETS = [
     UniformForward,
     UniformBackward,
     UniformZoomIn,
@@ -76,7 +75,7 @@ class TestDDSketches(ABC):
 
     def _evaluate_sketch_accuracy(self, sketch, data, eps, summary_stats=True):
         size = data.size
-        for quantile in test_quantiles:
+        for quantile in TEST_QUANTILES:
             sketch_q = sketch.get_quantile_value(quantile)
             data_q = data.quantile(quantile)
             err = abs(sketch_q - data_q)
@@ -88,19 +87,13 @@ class TestDDSketches(ABC):
 
     def test_distributions(self):
         """Test DDSketch on values from various distributions"""
-        for dataset in datasets:
-            for size in test_sizes:
+        for dataset in DATASETS:
+            for size in TEST_SIZES:
                 data = dataset(size)
                 sketch = self._new_dd_sketch()
                 for value in data.data:
                     sketch.add(value)
                 self._evaluate_sketch_accuracy(sketch, data, TEST_REL_ACC)
-
-                # test protobuf round trip
-                round_trip_sketch = BaseDDSketch.from_proto(sketch.to_proto())
-                self._evaluate_sketch_accuracy(
-                    round_trip_sketch, data, TEST_REL_ACC, summary_stats=False
-                )
 
     def test_add_multiple(self):
         """Test DDSketch on adding integer weighted values"""
@@ -128,7 +121,7 @@ class TestDDSketches(ABC):
     def test_merge_equal(self):
         """Test merging equal-sized DDSketches """
         parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
-        for size in test_sizes:
+        for size in TEST_SIZES:
             dataset = EmptyDataset(0)
             target_sketch = self._new_dd_sketch()
             for params in parameters:
@@ -146,7 +139,7 @@ class TestDDSketches(ABC):
         """Test merging variable-sized DDSketches """
         ntests = 20
         for _ in range(ntests):
-            for size in test_sizes:
+            for size in TEST_SIZES:
                 dataset = Lognormal(size)
                 sketch1 = self._new_dd_sketch()
                 sketch2 = self._new_dd_sketch()
@@ -189,7 +182,7 @@ class TestDDSketches(ABC):
         for value in dataset.data:
             sketch2.add(value)
 
-        sketch2_summary = [sketch2.get_quantile_value(q) for q in test_quantiles] + [
+        sketch2_summary = [sketch2.get_quantile_value(q) for q in TEST_QUANTILES] + [
             sketch2.sum,
             sketch2.avg,
             sketch2.num_values,
@@ -200,14 +193,14 @@ class TestDDSketches(ABC):
         for value in dataset.data:
             sketch1.add(value)
         # changes to sketch1 does not affect sketch2 after merge
-        sketch2_summary = [sketch2.get_quantile_value(q) for q in test_quantiles] + [
+        sketch2_summary = [sketch2.get_quantile_value(q) for q in TEST_QUANTILES] + [
             sketch2.sum,
             sketch2.avg,
             sketch2.num_values,
         ]
         self.assertAlmostEqual(
             sketch2_summary,
-            [sketch2.get_quantile_value(q) for q in test_quantiles]
+            [sketch2.get_quantile_value(q) for q in TEST_QUANTILES]
             + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
 
@@ -216,7 +209,7 @@ class TestDDSketches(ABC):
         # merging to an empty sketch does not change sketch2
         self.assertAlmostEqual(
             sketch2_summary,
-            [sketch2.get_quantile_value(q) for q in test_quantiles]
+            [sketch2.get_quantile_value(q) for q in TEST_QUANTILES]
             + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
 

@@ -4,7 +4,7 @@ This repo contains python implementations of the distributed quantile sketch alg
 
 ## Installation
 
-To install this package, clone the repo and run `python setup.py install`. This package depends on `numpy` and `protobuf`.
+To install this package, clone the repo and run `python setup.py install`. This package depends on `numpy` and `protobuf`. (The protobuf dependency can be removed if it's not applicable.)
 
 ## GKArray
 
