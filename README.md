@@ -25,7 +25,7 @@ for v in values:
 ```
 Find the quantiles of `values` to within epsilon of rank.
 ```
-quantiles = [sketch.quantile(q) for q in [0.5, 0.75, 0.9, 1]]
+quantiles = [sketch.get_quantile_value(q) for q in [0.5, 0.75, 0.9, 1]]
 ```
 Merge another `GKArray` into `sketch`.
 ```
@@ -57,7 +57,7 @@ for v in values:
 ```
 Find the quantiles of `values` to within the relative error.
 ```
-quantiles = [sketch.quantile(q) for q in [0.5, 0.75, 0.9, 1]]
+quantiles = [sketch.get_quantile_value(q) for q in [0.5, 0.75, 0.9, 1]]
 ```
 Merge another `DDSketch` into `sketch`.
 ```
