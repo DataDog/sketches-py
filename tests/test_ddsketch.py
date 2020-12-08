@@ -32,7 +32,7 @@ from datasets import (
     UniformZoomIn,
     UniformZoomOut,
 )
-from ddsketch.ddsketch import (
+from ddsketch import (
     DDSketch,
     LogCollapsingHighestDenseDDSketch,
     LogCollapsingLowestDenseDDSketch,

@@ -22,7 +22,7 @@ import math
 
 import numpy as np
 
-from .exception import IllegalArgumentException
+from exception import IllegalArgumentException
 
 
 class KeyMapping(ABC):
