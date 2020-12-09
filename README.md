@@ -1,9 +1,9 @@
 # sketches-py
 
-This repo contains the python implementation of the distributed quantile sketch
+This repo contains the Python implementation of the distributed quantile sketch
 algorithm DDSketch [1]. DDSketch has relative-error guarantees for any quantile
 q in [0, 1]. That is if the true value of the qth-quantile is `x` then DDSketch
-returns a value `y` such that `|x-y| < e x` where `e` is the relative error
+returns a value `y` such that `|x-y| / x < e` where `e` is the relative error
 parameter. (The default here is set to 0.01.)  DDSketch is also fully mergeable,
 meaning that multiple sketches from distributed systems can be combined in a
 central node.
