@@ -1,4 +1,4 @@
-# sketches-py
+# ddsketch
 
 This repo contains the Python implementation of the distributed quantile sketch
 algorithm DDSketch [1]. DDSketch has relative-error guarantees for any quantile
