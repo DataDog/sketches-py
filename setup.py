@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="ddsketch",
-    version="1.0.2",
+    version="1.1.0",
     author="Jee Rim, Charles-Philippe Masson, Homin Lee",
     author_email="jee.rim@datadoghq.com, charles.masson@datadoghq.com, homin@datadoghq.com",
     description="Distributed quantile sketches",

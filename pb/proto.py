@@ -46,7 +46,7 @@ class KeyMappingProto:
             raise IllegalArgumentException("unrecognized interpolation")
 
 
-class StoreProto():
+class StoreProto:
     """Currently only supports DenseStore"""
 
     @classmethod
