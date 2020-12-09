@@ -1,18 +1,15 @@
 # sketches-py
 
-This repo contains the python implementation of the distributed quantile sketch algorithm DDSketch [1]. DDSketch is fully mergeable, meaning that multiple sketches from distributed systems can be combined in a central node.
+This repo contains the python implementation of the distributed quantile sketch
+algorithm DDSketch [1]. DDSketch has relative-error guarantees for any quantile
+q in [0, 1]. That is if the true value of the qth-quantile is `x` then DDSketch
+returns a value `y` such that `|x-y| < e x` where `e` is the relative error
+parameter. (The default here is set to 0.01.)  DDSketch is also fully mergeable,
+meaning that multiple sketches from distributed systems can be combined in a
+central node.
 
-## Installation
-
-To install this package, run `pip install ddsketch`, or clone the repo and run
-`python setup.py install`. This package depends on `numpy` and `protobuf`. (The
-protobuf dependency can be removed if it's not applicable.)
-
-## DDSketch
-
-`DDSketch` has a relative error (defaulted to 0.01) guarantee for any quantile q
-in [0, 1]. The size of the sketch is guaranteed [1] to not grow too large for
-any data that can be described by a distribution whose tails are
+Our default implementation, `DDSketch`, is guaranteed [1] to not grow too large
+in size for any data that can be described by a distribution whose tails are
 sub-exponential.
 
 We also provide implementations (`LogCollapsingLowestDenseDDSketch` and
@@ -22,7 +19,13 @@ the q-quantile will be accurate up to the specified relative error as long as it
 belongs to one of the `m` bins kept by the sketch.  If the data is time in
 seconds, the default of `m = 2048` covers 80 microseconds to 1 year.
 
-### Usage
+## Installation
+
+To install this package, run `pip install ddsketch`, or clone the repo and run
+`python setup.py install`. This package depends on `numpy` and `protobuf`. (The
+protobuf dependency can be removed if it's not applicable.)
+
+## Usage
 ```
 from ddsketch import DDSketch
 
