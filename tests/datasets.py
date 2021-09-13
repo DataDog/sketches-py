@@ -195,7 +195,6 @@ class UniformSqrt(Dataset):
 
     def generate(self):
         t = int(np.sqrt(2 * self.size))
-        item = 0
         initial_item = 0
         initial_skip = 1
         emitted = 0

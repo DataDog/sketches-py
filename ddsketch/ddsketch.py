@@ -50,13 +50,13 @@ class BaseDDSketch:
     """The base implementation of DDSketch with neither mapping nor storage specified.
 
     Args:
-        mapping (store.Mapping): map btw values and store bins
+        mapping (mapping.KeyMapping): map btw values and store bins
         store (store.Store): storage for positive values
         negative_store (store.Store): storage for negative values
         zero_count (int): The count of zero values
 
     Attributes:
-        relative_accuracty (float): the accuracy guarantee; referred to as alpha
+        relative_accuracy (float): the accuracy guarantee; referred to as alpha
             in the paper. (0. < alpha < 1.)
 
         count: the number of values seen by the sketch
@@ -113,7 +113,7 @@ class BaseDDSketch:
     def add(self, val, weight=1.0):
         """Add a value to the sketch."""
         if weight <= 0.0:
-            raise IllegalArgumentException("weight must be a postive float")
+            raise IllegalArgumentException("weight must be a positive float")
 
         if val > self.mapping.min_possible:
             self.store.add(self.mapping.key(val), weight)
