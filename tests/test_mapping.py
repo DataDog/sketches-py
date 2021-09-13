@@ -52,7 +52,7 @@ def _test_value_rel_acc(mapping, tester):
     return max_relative_acc
 
 
-class TestKeyMapping(ABC):
+class BaseTestKeyMapping(ABC):
     """Abstract class for testing KeyMapping classes"""
 
     offsets = [0, 1, -12.23, 7768.3]
@@ -80,21 +80,21 @@ class TestKeyMapping(ABC):
             self.assertEqual(mapping.key(1), int(offset))
 
 
-class TestLogarithmicMapping(TestKeyMapping, TestCase):
+class TestLogarithmicMapping(BaseTestKeyMapping, TestCase):
     """Class for testing LogarithmicMapping class"""
 
     def mapping(self, relative_accuracy, offset):
         return LogarithmicMapping(relative_accuracy, offset)
 
 
-class TestLinearlyInterpolatedMapping(TestKeyMapping, TestCase):
+class TestLinearlyInterpolatedMapping(BaseTestKeyMapping, TestCase):
     """Class for testing LinearlyInterpolatedMapping class"""
 
     def mapping(self, relative_accuracy, offset):
         return LinearlyInterpolatedMapping(relative_accuracy, offset)
 
 
-class TestCubicallyInterpolatedMapping(TestKeyMapping, TestCase):
+class TestCubicallyInterpolatedMapping(BaseTestKeyMapping, TestCase):
     """Class for testing CubicallyInterpolatedMapping class"""  #
 
     def mapping(self, relative_accuracy, offset):

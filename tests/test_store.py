@@ -21,7 +21,7 @@ EXTREME_MAX = sys.maxsize
 EXTREME_MIN = -sys.maxsize - 1
 
 
-class TestStore(ABC):
+class BaseTestStore(ABC):
     """Base class for testing Store classes"""
 
     @abstractmethod
@@ -129,7 +129,7 @@ class TestStore(ABC):
         self.assertEqual(store.count, 1)
 
 
-class TestDenseStore(TestStore, TestCase):
+class TestDenseStore(BaseTestStore, TestCase):
     """Class for testing the DenseStore class"""
 
     def _test_values(self, store, values):
@@ -197,7 +197,7 @@ class TestDenseStore(TestStore, TestCase):
         """
 
 
-class TestCollapsingLowestDenseStore(TestStore, TestCase):
+class TestCollapsingLowestDenseStore(BaseTestStore, TestCase):
     """Class for testing the CollapsingLowestDenseStore class"""
 
     def _test_values(self, store, values):
@@ -238,7 +238,7 @@ class TestCollapsingLowestDenseStore(TestStore, TestCase):
             self._test_values(store, flat_values)
 
 
-class TestCollapsingHighestDenseStore(TestStore, TestCase):
+class TestCollapsingHighestDenseStore(BaseTestStore, TestCase):
     """Class for testing the CollapsingHighestDenseStore class"""
 
     def _test_values(self, store, values):
