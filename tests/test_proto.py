@@ -8,11 +8,11 @@ from ddsketch.mapping import (
 )
 from ddsketch.pb.proto import DDSketchProto, KeyMappingProto, StoreProto
 from ddsketch.store import DenseStore
-from ddsketch.tests.test_ddsketch import TestDDSketch
-from ddsketch.tests.test_store import TestDenseStore
+from tests.test_ddsketch import TestDDSketch
+from tests.test_store import TestDenseStore
 
 
-class TestKeyMappingProto(ABC):
+class BaseTestKeyMappingProto(ABC):
     offsets = [0, 1, -12.23, 7768.3]
 
     def test_round_trip(self):
@@ -30,21 +30,21 @@ class TestKeyMappingProto(ABC):
                 self.assertAlmostEqual(mapping.value(0), round_trip_mapping.value(0))
 
 
-class TestLogarithmicMapping(TestKeyMappingProto, TestCase):
+class TestLogarithmicMapping(BaseTestKeyMappingProto, TestCase):
     """Class for testing LogarithmicMapping class"""
 
     def mapping(self, relative_accuracy, offset):
         return LogarithmicMapping(relative_accuracy, offset)
 
 
-class TestLinearlyInterpolatedMapping(TestKeyMappingProto, TestCase):
+class TestLinearlyInterpolatedMapping(BaseTestKeyMappingProto, TestCase):
     """Class for testing LinearlyInterpolatedMapping class"""
 
     def mapping(self, relative_accuracy, offset):
         return LinearlyInterpolatedMapping(relative_accuracy, offset)
 
 
-class TestCubicallyInterpolatedMapping(TestKeyMappingProto, TestCase):
+class TestCubicallyInterpolatedMapping(BaseTestKeyMappingProto, TestCase):
     """Class for testing CubicallyInterpolatedMapping class"""
 
     def mapping(self, relative_accuracy, offset):

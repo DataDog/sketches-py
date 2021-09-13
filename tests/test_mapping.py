@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 import math
 from unittest import TestCase
 
-from mapping import (
+from ddsketch.mapping import (
     CubicallyInterpolatedMapping,
     LogarithmicMapping,
     LinearlyInterpolatedMapping,

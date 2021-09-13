@@ -1,4 +1,4 @@
-from ..ddsketch import BaseDDSketch
+from ddsketch.ddsketch import BaseDDSketch
 from ..exception import IllegalArgumentException
 from ..mapping import (
     CubicallyInterpolatedMapping,
