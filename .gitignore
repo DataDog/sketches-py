@@ -1,5 +1,6 @@
 *.pyc
 *~
+.riot/
 
 # Ignore files generated during `python setup.py install`
 build/
