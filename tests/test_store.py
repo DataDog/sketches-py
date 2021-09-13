@@ -10,7 +10,7 @@ from collections import Counter
 import sys
 from unittest import TestCase
 
-from store import (
+from ddsketch.store import (
     CollapsingHighestDenseStore,
     CollapsingLowestDenseStore,
     DenseStore,

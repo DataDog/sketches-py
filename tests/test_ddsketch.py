@@ -11,7 +11,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from datasets import (
+from tests.datasets import (
     Bimodal,
     Constant,
     EmptyDataset,
@@ -32,7 +32,7 @@ from datasets import (
     UniformZoomIn,
     UniformZoomOut,
 )
-from ddsketch import (
+from ddsketch.ddsketch import (
     DDSketch,
     LogCollapsingHighestDenseDDSketch,
     LogCollapsingLowestDenseDDSketch,

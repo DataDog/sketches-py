@@ -37,9 +37,9 @@ DDSketch implementations are also available in:
 
 import numpy as np
 
-from exception import IllegalArgumentException, UnequalSketchParametersException
-from mapping import LogarithmicMapping
-from store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
+from .exception import IllegalArgumentException, UnequalSketchParametersException
+from .mapping import LogarithmicMapping
+from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
