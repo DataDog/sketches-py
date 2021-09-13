@@ -65,7 +65,7 @@ TEST_REL_ACC = 0.05
 TEST_BIN_LIMIT = 1024
 
 
-class TestDDSketches(ABC):
+class BaseTestDDSketches(ABC):
     """AbstractBaseClass for testing DDSketch implementations"""
 
     @staticmethod
@@ -214,7 +214,7 @@ class TestDDSketches(ABC):
         )
 
 
-class TestDDSketch(TestDDSketches, TestCase):
+class TestDDSketch(BaseTestDDSketches, TestCase):
     """Class for testing LogCollapsingLowestDenseDDSketch"""
 
     @staticmethod
@@ -222,7 +222,7 @@ class TestDDSketch(TestDDSketches, TestCase):
         return DDSketch(TEST_REL_ACC)
 
 
-class TestLogCollapsingLowestDenseDDSketch(TestDDSketches, TestCase):
+class TestLogCollapsingLowestDenseDDSketch(BaseTestDDSketches, TestCase):
     """Class for testing LogCollapsingLowestDenseDDSketch"""
 
     @staticmethod
@@ -230,7 +230,7 @@ class TestLogCollapsingLowestDenseDDSketch(TestDDSketches, TestCase):
         return LogCollapsingLowestDenseDDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
 
 
-class TestLogCollapsingHighestDenseDDSketch(TestDDSketches, TestCase):
+class TestLogCollapsingHighestDenseDDSketch(BaseTestDDSketches, TestCase):
     """Class for testing LogCollapsingHighestDenseDDSketch"""
 
     @staticmethod
