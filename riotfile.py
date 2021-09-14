@@ -13,5 +13,16 @@ venv = Venv(
                 "pytest": latest,
             },
         ),
+        Venv(
+            pkgs={
+                "reno": latest,
+            },
+            venvs=[
+                Venv(
+                    name="reno",
+                    command="reno {cmdargs}",
+                ),
+            ],
+        ),
     ],
 )

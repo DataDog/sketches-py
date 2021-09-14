@@ -74,6 +74,18 @@ Replace the Python version with the interpreter(s) available.
     # Run tests with Python 3.9
     riot run -p3.9 test
 
+### Release notes
+
+New features, bug fixes, deprecations and other breaking changes must have
+release notes included.
+
+To generate a release note for the change:
+
+    riot run reno new <short-description-of-change-no-spaces>
+
+Edit the generated file to include notes on the changes made in the commit/PR
+and add commit it.
+
 
 ## References
 [1] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019. (The code referenced in the paper, including our implementation of the the Greenwald-Khanna (GK) algorithm, can be found at: https://github.com/DataDog/sketches-py/releases/tag/v0.1 )
