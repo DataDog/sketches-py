@@ -53,5 +53,27 @@ sketch.merge(another_sketch)
 ```
 The quantiles of `values` concatenated with `other_values` are still accurate to within the relative error.
 
+## Development
+
+To work on ddsketch a Python interpreter must be installed. It is recommended
+to create and use a virtualenv for the tooling:
+
+    pip install virtualenv
+    virtualenv --python=3 .venv
+    source .venv/bin/activate
+
+
+### Testing
+
+To run the tests install `riot`:
+
+    pip install riot
+
+Replace the Python version with the interpreter(s) available.
+
+    # Run tests with Python 3.9
+    riot run -p3.9 test
+
+
 ## References
 [1] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019. (The code referenced in the paper, including our implementation of the the Greenwald-Khanna (GK) algorithm, can be found at: https://github.com/DataDog/sketches-py/releases/tag/v0.1 )
