@@ -14,6 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="http://github.com/datadog/sketches-py",
     packages=setuptools.find_packages(),
+    package_data={"ddsketch": ["py.typed"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",

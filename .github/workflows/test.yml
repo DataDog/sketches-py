@@ -16,6 +16,8 @@ jobs:
           fetch-depth: 0
       - run: pip install riot==0.8
       - run: riot -v run check_fmt
+      - run: riot -v run -s mypy
+
   test:
     strategy:
       matrix:

@@ -34,6 +34,7 @@ DDSketch implementations are also available in:
 <a href="https://github.com/DataDog/sketches-py/">Python</a>
 <a href="https://github.com/DataDog/sketches-js/">JavaScript</a>
 """
+import typing
 
 from .exception import IllegalArgumentException
 from .exception import UnequalSketchParametersException
@@ -41,6 +42,13 @@ from .mapping import LogarithmicMapping
 from .store import CollapsingHighestDenseStore
 from .store import CollapsingLowestDenseStore
 from .store import DenseStore
+
+
+if typing.TYPE_CHECKING:
+    from typing import Optional
+
+    from .mapping import KeyMapping
+    from .store import Store
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
@@ -73,6 +81,7 @@ class BaseDDSketch:
         negative_store,
         zero_count,
     ):
+        # type: (KeyMapping, Store, Store, float) -> None
         self.mapping = mapping
         self.store = store
         self.negative_store = negative_store
@@ -85,6 +94,7 @@ class BaseDDSketch:
         self._sum = 0.0
 
     def __repr__(self):
+        # type: () -> str
         return (
             f"store: {self.store}, negative_store: {self.negative_store}, "
             f"zero_count: {self.zero_count}, count: {self.count}, "
@@ -93,25 +103,30 @@ class BaseDDSketch:
 
     @property
     def name(self):
+        # type: () -> str
         """str: name of the sketch"""
         return "DDSketch"
 
     @property
     def num_values(self):
+        # type: () -> float
         """float: number of values in the sketch"""
         return self.count
 
     @property
     def avg(self):
+        # type: () -> float
         """float: exact avg of the values added to the sketch"""
         return self.sum / self.count
 
     @property
     def sum(self):
+        # type: () -> float
         """float: exact sum of the values added to the sketch"""
         return self._sum
 
     def add(self, val, weight=1.0):
+        # type: (float, float) -> None
         """Add a value to the sketch."""
         if weight <= 0.0:
             raise IllegalArgumentException("weight must be a positive float")
@@ -132,6 +147,7 @@ class BaseDDSketch:
             self.max = val
 
     def get_quantile_value(self, quantile):
+        # type: (float) -> Optional[float]
         """the approximate value at the specified quantile
 
         Args:
@@ -158,6 +174,7 @@ class BaseDDSketch:
         return quantile_value
 
     def merge(self, sketch):
+        # type: (BaseDDSketch) -> None
         """Merges the other sketch into this one. After this operation, this sketch
         encodes the values that were added to both this and the input sketch.
         """
@@ -187,10 +204,12 @@ class BaseDDSketch:
             self.max = sketch.max
 
     def mergeable(self, other):
+        # type: (BaseDDSketch) -> bool
         """Two sketches can be merged only if their gammas are equal."""
         return self.mapping.gamma == other.mapping.gamma
 
     def copy(self, sketch):
+        # type: (BaseDDSketch) -> None
         """copy the input sketch into this one"""
         self.store.copy(sketch.store)
         self.negative_store.copy(sketch.negative_store)
@@ -210,7 +229,7 @@ class DDSketch(BaseDDSketch):
     """
 
     def __init__(self, relative_accuracy=None):
-
+        # type: (Optional[float]) -> None
         # Make sure the parameters are valid
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
@@ -234,7 +253,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
     """
 
     def __init__(self, relative_accuracy=None, bin_limit=None):
-
+        # type: (Optional[float], Optional[int]) -> None
         # Make sure the parameters are valid
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
@@ -264,7 +283,7 @@ class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
     """
 
     def __init__(self, relative_accuracy=None, bin_limit=None):
-
+        # type: (Optional[float], Optional[int]) -> None
         # Make sure the parameters are valid
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
