@@ -3,7 +3,9 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC
+from abc import abstractmethod
+from abc import abstractproperty
 
 import numpy as np
 

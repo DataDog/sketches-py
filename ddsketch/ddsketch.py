@@ -35,9 +35,12 @@ DDSketch implementations are also available in:
 <a href="https://github.com/DataDog/sketches-js/">JavaScript</a>
 """
 
-from .exception import IllegalArgumentException, UnequalSketchParametersException
+from .exception import IllegalArgumentException
+from .exception import UnequalSketchParametersException
 from .mapping import LogarithmicMapping
-from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
+from .store import CollapsingHighestDenseStore
+from .store import CollapsingLowestDenseStore
+from .store import DenseStore
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper

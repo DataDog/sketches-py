@@ -16,7 +16,8 @@ the LogarithmicMapping, but it requires the costly evaluation of the logarithm
 when computing the index. Other mappings can approximate the logarithmic
 mapping, while being less computationally costly.
 """
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 import math
 import sys
 
@@ -52,17 +53,17 @@ class KeyMapping(ABC):
 
     @classmethod
     def from_gamma_offset(cls, gamma, offset):
-        """ Constructor used by pb.proto """
+        """Constructor used by pb.proto"""
         relative_accuracy = (gamma - 1.0) / (gamma + 1.0)
         return cls(relative_accuracy, offset=offset)
 
     @abstractmethod
     def _log_gamma(self, value):
-        """ Return (an approximation of) the logarithm of the value base gamma """
+        """Return (an approximation of) the logarithm of the value base gamma"""
 
     @abstractmethod
     def _pow_gamma(self, value):
-        """ Return (an approximation of) gamma to the power value """
+        """Return (an approximation of) gamma to the power value"""
 
     def key(self, value):
         """
@@ -102,7 +103,7 @@ class LogarithmicMapping(KeyMapping):
 
 def _cbrt(x):
     # type: (float) -> float
-    y = abs(x)**(1./3.)
+    y = abs(x) ** (1.0 / 3.0)
     if x < 0:
         return -y
     return y
@@ -127,7 +128,7 @@ class LinearlyInterpolatedMapping(KeyMapping):
         return significand + (exponent - 1)
 
     def _exp2_approx(self, value):
-        """ inverse of _log2_approx """
+        """inverse of _log2_approx"""
         exponent = math.floor(value) + 1
         mantissa = (value - exponent + 2) / 2.0
         return math.ldexp(mantissa, exponent)
@@ -158,7 +159,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
         self._multiplier /= self.C
 
     def _cubic_log2_approx(self, value):
-        """ approximates log2 using a cubic polynomial """
+        """approximates log2 using a cubic polynomial"""
         mantissa, exponent = math.frexp(value)
         significand = 2 * mantissa - 1
         return (
@@ -166,7 +167,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
         ) * significand + (exponent - 1)
 
     def _cubic_exp2_approx(self, value):
-        """ Derived from Cardano's formula """
+        """Derived from Cardano's formula"""
 
         exponent = math.floor(value)
         delta_0 = self.B * self.B - 3 * self.A * self.C
@@ -175,7 +176,10 @@ class CubicallyInterpolatedMapping(KeyMapping):
             - 9 * self.A * self.B * self.C
             - 27 * self.A * self.A * (value - exponent)
         )
-        cardano = _cbrt((delta_1 - ((delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)**.5)) / 2)
+        cardano = _cbrt(
+            (delta_1 - ((delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0) ** 0.5))
+            / 2
+        )
         significand_plus_one = (
             -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
         )

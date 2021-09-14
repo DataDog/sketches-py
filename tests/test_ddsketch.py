@@ -5,38 +5,36 @@
 
 """Tests for DDSketch"""
 
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from collections import Counter
 from unittest import TestCase
 
 import numpy as np
 
-from tests.datasets import (
-    Bimodal,
-    Constant,
-    EmptyDataset,
-    Exponential,
-    Integers,
-    Lognormal,
-    Laplace,
-    Mixed,
-    NegativeUniformBackward,
-    NegativeUniformForward,
-    NumberLineBackward,
-    NumberLineForward,
-    Normal,
-    Trimodal,
-    UniformBackward,
-    UniformForward,
-    UniformSqrt,
-    UniformZoomIn,
-    UniformZoomOut,
-)
-from ddsketch.ddsketch import (
-    DDSketch,
-    LogCollapsingHighestDenseDDSketch,
-    LogCollapsingLowestDenseDDSketch,
-)
+from ddsketch.ddsketch import DDSketch
+from ddsketch.ddsketch import LogCollapsingHighestDenseDDSketch
+from ddsketch.ddsketch import LogCollapsingLowestDenseDDSketch
+from tests.datasets import Bimodal
+from tests.datasets import Constant
+from tests.datasets import EmptyDataset
+from tests.datasets import Exponential
+from tests.datasets import Integers
+from tests.datasets import Laplace
+from tests.datasets import Lognormal
+from tests.datasets import Mixed
+from tests.datasets import NegativeUniformBackward
+from tests.datasets import NegativeUniformForward
+from tests.datasets import Normal
+from tests.datasets import NumberLineBackward
+from tests.datasets import NumberLineForward
+from tests.datasets import Trimodal
+from tests.datasets import UniformBackward
+from tests.datasets import UniformForward
+from tests.datasets import UniformSqrt
+from tests.datasets import UniformZoomIn
+from tests.datasets import UniformZoomOut
+
 
 TEST_QUANTILES = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999, 1]
 TEST_SIZES = [3, 5, 10, 100, 1000]
@@ -71,7 +69,7 @@ class BaseTestDDSketches(ABC):
     @staticmethod
     @abstractmethod
     def _new_dd_sketch():
-        """ create a new DDSketch of the appropriate type """
+        """create a new DDSketch of the appropriate type"""
 
     def _evaluate_sketch_accuracy(self, sketch, data, eps, summary_stats=True):
         size = data.size
@@ -119,7 +117,7 @@ class BaseTestDDSketches(ABC):
         self.assertAlmostEqual(sketch.avg, 74.75)
 
     def test_merge_equal(self):
-        """Test merging equal-sized DDSketches """
+        """Test merging equal-sized DDSketches"""
         parameters = [(35, 1), (1, 3), (15, 2), (40, 0.5)]
         for size in TEST_SIZES:
             dataset = EmptyDataset(0)
@@ -136,7 +134,7 @@ class BaseTestDDSketches(ABC):
             self._evaluate_sketch_accuracy(target_sketch, dataset, TEST_REL_ACC)
 
     def test_merge_unequal(self):
-        """Test merging variable-sized DDSketches """
+        """Test merging variable-sized DDSketches"""
         ntests = 20
         for _ in range(ntests):
             for size in TEST_SIZES:

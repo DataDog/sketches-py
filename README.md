@@ -87,5 +87,12 @@ Edit the generated file to include notes on the changes made in the commit/PR
 and add commit it.
 
 
+### Formatting
+
+Format code with
+
+    riot run fmt
+
+
 ## References
 [1] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019. (The code referenced in the paper, including our implementation of the the Greenwald-Khanna (GK) algorithm, can be found at: https://github.com/DataDog/sketches-py/releases/tag/v0.1 )

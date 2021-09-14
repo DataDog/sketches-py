@@ -7,7 +7,8 @@
 We start with 128 bins and grow the store in chunks of 128 unless specified
 otherwise."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 import math
 
 
@@ -167,7 +168,7 @@ class DenseStore(Store):
         self.offset -= shift
 
     def _center_bins(self, new_min_key, new_max_key):
-        """ center the bins; this changes the offset"""
+        """center the bins; this changes the offset"""
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
