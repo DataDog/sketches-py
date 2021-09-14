@@ -19,7 +19,6 @@ setuptools.setup(
     ],
     keywords=["ddsketch", "quantile", "sketch"],
     install_requires=[
-        "numpy>=1.11.0",
         "protobuf>=3.14.0",
     ],
     python_requires=">=3.6",

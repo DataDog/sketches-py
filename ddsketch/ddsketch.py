@@ -35,8 +35,6 @@ DDSketch implementations are also available in:
 <a href="https://github.com/DataDog/sketches-js/">JavaScript</a>
 """
 
-import numpy as np
-
 from .exception import IllegalArgumentException, UnequalSketchParametersException
 from .mapping import LogarithmicMapping
 from .store import CollapsingHighestDenseStore, CollapsingLowestDenseStore, DenseStore
@@ -137,10 +135,10 @@ class BaseDDSketch:
             quantile (float): 0 <= q <=1
 
         Returns:
-            the value at the specified quantile or np.NaN if the sketch is empty
+            the value at the specified quantile or None if the sketch is empty
         """
         if quantile < 0 or quantile > 1 or self.count == 0:
-            return np.NaN
+            return None
 
         rank = quantile * (self.count - 1)
         if rank < self.negative_store.count:

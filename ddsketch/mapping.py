@@ -16,11 +16,9 @@ the LogarithmicMapping, but it requires the costly evaluation of the logarithm
 when computing the index. Other mappings can approximate the logarithmic
 mapping, while being less computationally costly.
 """
-
 from abc import ABC, abstractmethod
 import math
-
-import numpy as np
+import sys
 
 from .exception import IllegalArgumentException
 
@@ -49,8 +47,8 @@ class KeyMapping(ABC):
         gamma_mantissa = 2 * relative_accuracy / (1 - relative_accuracy)
         self.gamma = 1 + gamma_mantissa
         self._multiplier = 1 / math.log1p(gamma_mantissa)
-        self.min_possible = np.finfo(np.float64).tiny * self.gamma
-        self.max_possible = np.finfo(np.float64).max / self.gamma
+        self.min_possible = sys.float_info.min * self.gamma
+        self.max_possible = sys.float_info.max / self.gamma
 
     @classmethod
     def from_gamma_offset(cls, gamma, offset):
@@ -99,7 +97,15 @@ class LogarithmicMapping(KeyMapping):
         return math.log2(value) * self._multiplier
 
     def _pow_gamma(self, value):
-        return np.exp2(value / self._multiplier)
+        return math.pow(2, value / self._multiplier)
+
+
+def _cbrt(x):
+    # type: (float) -> float
+    y = abs(x)**(1./3.)
+    if x < 0:
+        return -y
+    return y
 
 
 class LinearlyInterpolatedMapping(KeyMapping):
@@ -169,14 +175,12 @@ class CubicallyInterpolatedMapping(KeyMapping):
             - 9 * self.A * self.B * self.C
             - 27 * self.A * self.A * (value - exponent)
         )
-        cardano = np.cbrt(
-            (delta_1 - np.sqrt(delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)) / 2
-        )
+        cardano = _cbrt((delta_1 - math.sqrt(delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)) / 2)
         significand_plus_one = (
             -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
         )
         mantissa = significand_plus_one / 2
-        return np.ldexp(mantissa, exponent + 1)
+        return math.ldexp(mantissa, exponent + 1)
 
     def _log_gamma(self, value):
         return self._cubic_log2_approx(value) * self._multiplier
