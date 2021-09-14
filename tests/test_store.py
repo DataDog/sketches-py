@@ -5,16 +5,16 @@
 
 """Tests for the Store classes"""
 
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from collections import Counter
 import sys
 from unittest import TestCase
 
-from ddsketch.store import (
-    CollapsingHighestDenseStore,
-    CollapsingLowestDenseStore,
-    DenseStore,
-)
+from ddsketch.store import CollapsingHighestDenseStore
+from ddsketch.store import CollapsingLowestDenseStore
+from ddsketch.store import DenseStore
+
 
 TEST_BIN_LIMIT = [1, 20, 1000]
 EXTREME_MAX = sys.maxsize

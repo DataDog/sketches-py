@@ -5,6 +5,17 @@ on:
       - master
   pull_request:
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: pip install riot==0.8
+      - run: riot -v run check_fmt
   test:
     strategy:
       matrix:

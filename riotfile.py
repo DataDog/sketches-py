@@ -22,6 +22,27 @@ venv = Venv(
                 Venv(
                     name="reno",
                     command="reno {cmdargs}",
+                )
+            ],
+        ),
+        Venv(
+            pkgs={
+                "black": "==21.7b0",
+                "isort": latest,
+                "toml": latest,
+            },
+            venvs=[
+                Venv(
+                    name="black",
+                    command="black {cmdargs}",
+                ),
+                Venv(
+                    name="fmt",
+                    command="isort . && black .",
+                ),
+                Venv(
+                    name="check_fmt",
+                    command="isort --check . && black --check .",
                 ),
             ],
         ),

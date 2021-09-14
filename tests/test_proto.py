@@ -1,12 +1,12 @@
 from abc import ABC
 from unittest import TestCase
 
-from ddsketch.mapping import (
-    CubicallyInterpolatedMapping,
-    LogarithmicMapping,
-    LinearlyInterpolatedMapping,
-)
-from ddsketch.pb.proto import DDSketchProto, KeyMappingProto, StoreProto
+from ddsketch.mapping import CubicallyInterpolatedMapping
+from ddsketch.mapping import LinearlyInterpolatedMapping
+from ddsketch.mapping import LogarithmicMapping
+from ddsketch.pb.proto import DDSketchProto
+from ddsketch.pb.proto import KeyMappingProto
+from ddsketch.pb.proto import StoreProto
 from ddsketch.store import DenseStore
 from tests.test_ddsketch import TestDDSketch
 from tests.test_store import TestDenseStore
