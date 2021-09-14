@@ -10,9 +10,44 @@ otherwise."""
 from abc import ABC
 from abc import abstractmethod
 import math
+import typing
+
+
+if typing.TYPE_CHECKING:
+    from typing import List
+    from typing import Optional
+    from typing import cast
 
 
 CHUNK_SIZE = 128
+
+
+class _NegativeIntInfinity(int):
+    def __ge__(self, x):
+        return False
+
+    __gt__ = __ge__
+
+    def __lt__(self, x):
+        return True
+
+    __le__ = __lt__
+
+
+class _PositiveIntInfinity(int):
+    def __ge__(self, x):
+        return True
+
+    __gt__ = __ge__
+
+    def __lt__(self, x):
+        return False
+
+    __le__ = __lt__
+
+
+_neg_infinity = _NegativeIntInfinity()
+_pos_infinity = _PositiveIntInfinity()
 
 
 class Store(ABC):
@@ -25,9 +60,10 @@ class Store(ABC):
     """
 
     def __init__(self):
-        self.count = 0
-        self.min_key = float("+inf")
-        self.max_key = float("-inf")
+        # type: () -> None
+        self.count = 0  # type: float
+        self.min_key = _pos_infinity  # type: int
+        self.max_key = _neg_infinity  # type: int
 
     @abstractmethod
     def copy(self, store):
@@ -35,15 +71,18 @@ class Store(ABC):
 
     @abstractmethod
     def length(self):
+        # type: () -> int
         """the number of bins"""
 
     @abstractmethod
     def add(self, key, weight=1.0):
+        # type: (int, float) -> None
         """Updates the counter at the specified index key, growing the number of bins if
         necessary."""
 
     @abstractmethod
     def key_at_rank(self, rank, lower=True):
+        # type: (float, bool) -> int
         """Return the key for the value at given rank.
 
         E.g., if the non-zero bins are [1, 1] for keys a, b with no offset
@@ -59,6 +98,7 @@ class Store(ABC):
 
     @abstractmethod
     def merge(self, store):
+        # type: (Store) -> None
         """Merge another store into this one. This should be equivalent as running the
         add operations that have *been run on the other store on this one.
         """
@@ -76,17 +116,19 @@ class DenseStore(Store):
         min_key (int): the minimum key bin
         max_key (int): the maximum key bin
         offset (int): the difference btw the keys and the index in which they are stored
-        bins (List[int]): the bins
+        bins (List[float]): the bins
     """
 
     def __init__(self, chunk_size=CHUNK_SIZE):
+        # type: (int) -> None
         super().__init__()
 
         self.chunk_size = chunk_size
         self.offset = 0
-        self.bins = []
+        self.bins = []  # type: List[float]
 
     def __repr__(self):
+        # type: () -> str
         repr_str = "{"
         for i, sbin in enumerate(self.bins):
             repr_str += f"{i+self.offset}: {sbin}, "
@@ -96,6 +138,7 @@ class DenseStore(Store):
         return repr_str
 
     def copy(self, store):
+        # type: (DenseStore) -> None
         self.bins = store.bins[:]
         self.count = store.count
         self.min_key = store.min_key
@@ -103,15 +146,18 @@ class DenseStore(Store):
         self.offset = store.offset
 
     def length(self):
+        # type: () -> int
         """the number of bins"""
         return len(self.bins)
 
     def add(self, key, weight=1.0):
+        # type: (int, float) -> None
         idx = self._get_index(key)
         self.bins[idx] += weight
         self.count += weight
 
     def _get_index(self, key):
+        # type: (int) -> int
         """calculate the bin index for the key, extending the range if necessary"""
 
         if key < self.min_key:
@@ -122,10 +168,12 @@ class DenseStore(Store):
         return key - self.offset
 
     def _get_new_length(self, new_min_key, new_max_key):
+        # type: (int, int) -> int
         desired_length = new_max_key - new_min_key + 1
         return self.chunk_size * math.ceil((desired_length) / self.chunk_size)
 
     def _extend_range(self, key, second_key=None):
+        # type: (int, Optional[int]) -> None
         """Grow the bins as necessary and call _adjust"""
         second_key = second_key or key
         new_min_key = min(key, second_key, self.min_key)
@@ -150,6 +198,7 @@ class DenseStore(Store):
             self._adjust(new_min_key, new_max_key)
 
     def _adjust(self, new_min_key, new_max_key):
+        # type: (int, int) -> None
         """Adjust the bins, the offset, the min_key, and max_key, without resizing the
         bins, in order to try making it fit the specified range.
         """
@@ -158,6 +207,7 @@ class DenseStore(Store):
         self.max_key = new_max_key
 
     def _shift_bins(self, shift):
+        # type: (int) -> None
         """shift the bins; this changes the offset"""
         if shift > 0:
             self.bins = self.bins[:-shift]
@@ -168,12 +218,14 @@ class DenseStore(Store):
         self.offset -= shift
 
     def _center_bins(self, new_min_key, new_max_key):
+        # type: (int, int) -> None
         """center the bins; this changes the offset"""
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
     def key_at_rank(self, rank, lower=True):
-        running_ct = 0
+        # type: (float, bool) -> int
+        running_ct = 0.0
         for i, bin_ct in enumerate(self.bins):
             running_ct += bin_ct
             if (lower and running_ct > rank) or (not lower and running_ct >= rank + 1):
@@ -181,7 +233,8 @@ class DenseStore(Store):
 
         return self.max_key
 
-    def merge(self, store):
+    def merge(self, store):  # type: ignore[override]
+        # type: (DenseStore) -> None
         if store.count == 0:
             return
 
@@ -216,16 +269,19 @@ class CollapsingLowestDenseStore(DenseStore):
     """
 
     def __init__(self, bin_limit, chunk_size=CHUNK_SIZE):
+        # type: (int, int) -> None
         super().__init__()
         self.bin_limit = bin_limit
         self.is_collapsed = False
 
-    def copy(self, store):
+    def copy(self, store):  # type: ignore[override]
+        # type: (CollapsingLowestDenseStore) -> None
         self.bin_limit = store.bin_limit
         self.is_collapsed = store.is_collapsed
         super().copy(store)
 
     def _get_new_length(self, new_min_key, new_max_key):
+        # type: (int, int) -> int
         desired_length = new_max_key - new_min_key + 1
         return min(
             self.chunk_size * math.ceil((desired_length) / self.chunk_size),
@@ -233,6 +289,7 @@ class CollapsingLowestDenseStore(DenseStore):
         )
 
     def _get_index(self, key):
+        # type: (int) -> int
         """calculate the bin index for the key, extending the range if necessary"""
         if key < self.min_key:
             if self.is_collapsed:
@@ -247,6 +304,7 @@ class CollapsingLowestDenseStore(DenseStore):
         return key - self.offset
 
     def _adjust(self, new_min_key, new_max_key):
+        # type: (int, int) -> None
         """Override. Adjust the bins, the offset, the min_key, and max_key, without
         resizing the bins, in order to try making it fit the specified
         range. Collapse to the left if necessary.
@@ -289,7 +347,8 @@ class CollapsingLowestDenseStore(DenseStore):
             self.min_key = new_min_key
             self.max_key = new_max_key
 
-    def merge(self, store):
+    def merge(self, store):  # type: ignore[override]
+        # type: (CollapsingLowestDenseStore) -> None  # type: ignore[override]
         """Override."""
         if store.count == 0:
             return
@@ -337,19 +396,25 @@ class CollapsingHighestDenseStore(DenseStore):
         self.bin_limit = bin_limit
         self.is_collapsed = False
 
-    def copy(self, store):
+    def copy(self, store):  # type: ignore[override]
+        # type: (CollapsingHighestDenseStore) -> None
         self.bin_limit = store.bin_limit
         self.is_collapsed = store.is_collapsed
         super().copy(store)
 
     def _get_new_length(self, new_min_key, new_max_key):
+        # type: (int, int) -> int
         desired_length = new_max_key - new_min_key + 1
-        return min(
-            self.chunk_size * math.ceil((desired_length) / self.chunk_size),
-            self.bin_limit,
+        return typing.cast(
+            int,
+            min(
+                self.chunk_size * math.ceil((desired_length) / self.chunk_size),
+                self.bin_limit,
+            ),
         )
 
     def _get_index(self, key):
+        # type: (int) -> int
         """calculate the bin index for the key, extending the range if necessary"""
         if key > self.max_key:
             if self.is_collapsed:
@@ -363,6 +428,7 @@ class CollapsingHighestDenseStore(DenseStore):
         return key - self.offset
 
     def _adjust(self, new_min_key, new_max_key):
+        # type: (int, int) -> None
         """Override. Adjust the bins, the offset, the min_key, and max_key, without
         resizing the bins, in order to try making it fit the specified
         range. Collapse to the left if necessary.
@@ -405,7 +471,8 @@ class CollapsingHighestDenseStore(DenseStore):
             self.min_key = new_min_key
             self.max_key = new_max_key
 
-    def merge(self, store):
+    def merge(self, store):  # type: ignore[override]
+        # type: (CollapsingHighestDenseStore) -> None  # type: ignore[override]
         """Override."""
         if store.count == 0:
             return

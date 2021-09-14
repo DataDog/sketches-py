@@ -40,6 +40,7 @@ class KeyMapping(ABC):
     """
 
     def __init__(self, relative_accuracy, offset=0.0):
+        # type: (float, float) -> None
         if relative_accuracy <= 0 or relative_accuracy >= 1:
             raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
         self.relative_accuracy = relative_accuracy
@@ -53,19 +54,23 @@ class KeyMapping(ABC):
 
     @classmethod
     def from_gamma_offset(cls, gamma, offset):
+        # type: (float, float) -> KeyMapping
         """Constructor used by pb.proto"""
         relative_accuracy = (gamma - 1.0) / (gamma + 1.0)
         return cls(relative_accuracy, offset=offset)
 
     @abstractmethod
     def _log_gamma(self, value):
+        # type: (float) -> float
         """Return (an approximation of) the logarithm of the value base gamma"""
 
     @abstractmethod
     def _pow_gamma(self, value):
+        # type: (float) -> float
         """Return (an approximation of) gamma to the power value"""
 
     def key(self, value):
+        # type: (float) -> int
         """
         Args:
             value (float)
@@ -75,6 +80,7 @@ class KeyMapping(ABC):
         return int(math.ceil(self._log_gamma(value)) + self._offset)
 
     def value(self, key):
+        # type: (int) -> float
         """
         Args:
             key (int)
@@ -91,13 +97,16 @@ class LogarithmicMapping(KeyMapping):
     """
 
     def __init__(self, relative_accuracy, offset=0.0):
+        # type: (float, float) -> None
         super().__init__(relative_accuracy, offset=offset)
         self._multiplier *= math.log(2)
 
     def _log_gamma(self, value):
+        # type: (float) -> float
         return math.log2(value) * self._multiplier
 
     def _pow_gamma(self, value):
+        # type: (float) -> float
         return 2 ** (value / self._multiplier)
 
 
@@ -116,6 +125,7 @@ class LinearlyInterpolatedMapping(KeyMapping):
     linearly interpolating the logarithm in-between."""
 
     def _log2_approx(self, value):
+        # type: (float) -> float
         """approximates log2 by s + f
         where v = (s+1) * 2 ** f  for s in [0, 1)
 
@@ -128,15 +138,18 @@ class LinearlyInterpolatedMapping(KeyMapping):
         return significand + (exponent - 1)
 
     def _exp2_approx(self, value):
+        # type: (float) -> float
         """inverse of _log2_approx"""
         exponent = math.floor(value) + 1
         mantissa = (value - exponent + 2) / 2.0
         return math.ldexp(mantissa, exponent)
 
     def _log_gamma(self, value):
+        # type: (float) -> float
         return self._log2_approx(value) * self._multiplier
 
     def _pow_gamma(self, value):
+        # type: (float) -> float
         return self._exp2_approx(value / self._multiplier)
 
 
@@ -155,10 +168,12 @@ class CubicallyInterpolatedMapping(KeyMapping):
     C = 10 / 7
 
     def __init__(self, relative_accuracy, offset=0.0):
+        # type: (float, float) -> None
         super().__init__(relative_accuracy, offset=offset)
         self._multiplier /= self.C
 
     def _cubic_log2_approx(self, value):
+        # type: (float) -> float
         """approximates log2 using a cubic polynomial"""
         mantissa, exponent = math.frexp(value)
         significand = 2 * mantissa - 1
@@ -167,6 +182,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
         ) * significand + (exponent - 1)
 
     def _cubic_exp2_approx(self, value):
+        # type: (float) -> float
         """Derived from Cardano's formula"""
 
         exponent = math.floor(value)
@@ -187,7 +203,9 @@ class CubicallyInterpolatedMapping(KeyMapping):
         return math.ldexp(mantissa, exponent + 1)
 
     def _log_gamma(self, value):
+        # type: (float) -> float
         return self._cubic_log2_approx(value) * self._multiplier
 
     def _pow_gamma(self, value):
+        # type: (float) -> float
         return self._cubic_exp2_approx(value / self._multiplier)
