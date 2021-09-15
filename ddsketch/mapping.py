@@ -97,7 +97,7 @@ class LogarithmicMapping(KeyMapping):
         return math.log2(value) * self._multiplier
 
     def _pow_gamma(self, value):
-        return math.pow(2, value / self._multiplier)
+        return 2 ** (value / self._multiplier)
 
 
 def _cbrt(x):
@@ -175,7 +175,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
             - 9 * self.A * self.B * self.C
             - 27 * self.A * self.A * (value - exponent)
         )
-        cardano = _cbrt((delta_1 - math.sqrt(delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)) / 2)
+        cardano = _cbrt((delta_1 - ((delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0)**.5)) / 2)
         significand_plus_one = (
             -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
         )
