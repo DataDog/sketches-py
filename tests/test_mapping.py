@@ -9,10 +9,14 @@ from abc import ABC, abstractmethod
 import math
 from unittest import TestCase
 
+import numpy
+import pytest
+
 from ddsketch.mapping import (
     CubicallyInterpolatedMapping,
     LogarithmicMapping,
     LinearlyInterpolatedMapping,
+    _cbrt,
 )
 
 
@@ -99,3 +103,8 @@ class TestCubicallyInterpolatedMapping(BaseTestKeyMapping, TestCase):
 
     def mapping(self, relative_accuracy, offset):
         return CubicallyInterpolatedMapping(relative_accuracy, offset)
+
+
+@pytest.mark.parametrize("x", [-12.3, -1.0, -1./3., 0.0, 1.0, 1./3., 2.0**10])
+def test_cbrt(x):
+    assert math.isclose(_cbrt(x), numpy.cbrt(x))

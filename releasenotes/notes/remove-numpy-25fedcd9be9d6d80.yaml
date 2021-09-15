@@ -1,0 +1,7 @@
+---
+prelude: >
+    numpy has been removed as a dependency.
+upgrade:
+  - |
+    ``BaseDDSketch.get_quantile_value`` will now return ``None`` instead of
+    ``numpy.NaN`` if the specified quantile is empty.
