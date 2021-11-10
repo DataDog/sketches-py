@@ -209,13 +209,13 @@ class DDSketch(BaseDDSketch):
     (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
-    def __init__(self, relative_accuracy=None):
+    def __init__(self, relative_accuracy=None, offset=0.0):
 
         # Make sure the parameters are valid
         if relative_accuracy is None:
             relative_accuracy = DEFAULT_REL_ACC
 
-        mapping = LogarithmicMapping(relative_accuracy)
+        mapping = LogarithmicMapping(relative_accuracy, offset)
         store = DenseStore()
         negative_store = DenseStore()
         super().__init__(
@@ -233,7 +233,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
     subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
-    def __init__(self, relative_accuracy=None, bin_limit=None):
+    def __init__(self, relative_accuracy=None, bin_limit=None, offset=0.0):
 
         # Make sure the parameters are valid
         if relative_accuracy is None:
@@ -242,7 +242,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
         if bin_limit is None or bin_limit < 0:
             bin_limit = DEFAULT_BIN_LIMIT
 
-        mapping = LogarithmicMapping(relative_accuracy)
+        mapping = LogarithmicMapping(relative_accuracy, offset)
         store = CollapsingLowestDenseStore(bin_limit)
         negative_store = CollapsingLowestDenseStore(bin_limit)
         super().__init__(
