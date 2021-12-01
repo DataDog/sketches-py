@@ -8,7 +8,7 @@ venv = Venv(
         Venv(
             name="test",
             command="pytest {cmdargs}",
-            pys=["2.7", "3.6", "3.7", "3.8", "3.9"],
+            pys=["2.7", "3.6", "3.7", "3.8", "3.9", "3.10"],
             pkgs={
                 "pytest": latest,
                 "numpy": latest,
