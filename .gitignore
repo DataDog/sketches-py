@@ -5,5 +5,4 @@
 # Ignore files generated during `python setup.py install`
 build/
 dist/
-sketches-py.egg-info/
-sketches.egg-info/
+*.egg-info/
