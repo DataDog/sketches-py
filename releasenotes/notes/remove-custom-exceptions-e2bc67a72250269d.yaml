@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The custom exceptions ``IllegalArgumentException`` and ``UnequalSketchParametersException``
+    as well as the ``ddsketch.exceptions`` module have been removed.
+
+    ``IllegalArgumentException`` and ``UnequalSketchParametersException`` are replaced with ``ValueError``.

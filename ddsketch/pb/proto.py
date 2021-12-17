@@ -1,5 +1,4 @@
 from ddsketch.ddsketch import BaseDDSketch
-from ..exception import IllegalArgumentException
 from ..mapping import (
     CubicallyInterpolatedMapping,
     LinearlyInterpolatedMapping,
@@ -43,7 +42,7 @@ class KeyMappingProto:
                 proto.gamma, proto.indexOffset
             )
         else:
-            raise IllegalArgumentException("unrecognized interpolation")
+            raise ValueError("Unrecognized interpolation %r" % proto.interpolation)
 
 
 class StoreProto:
