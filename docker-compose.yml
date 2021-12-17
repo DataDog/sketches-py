@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  dev:
+    # The dd-trace-py image includes all required versions of Python.
+    image: datadog/dd-trace-py:buster
+    command: bash
+    network_mode: host
+    working_dir: /src
+    volumes:
+      - ./:/src

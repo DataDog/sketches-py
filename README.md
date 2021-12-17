@@ -55,8 +55,12 @@ The quantiles of `values` concatenated with `other_values` are still accurate to
 
 ## Development
 
-To work on ddsketch a Python interpreter must be installed. It is recommended
-to create and use a virtualenv for the tooling:
+To work on ddsketch a Python interpreter must be installed. It is recommended to use the provided development
+container (requires [docker](https://www.docker.com/)) which includes all the required Python interpreters.
+
+    docker-compose run dev
+
+Or, if developing outside of docker then it is recommended to use a virtual environment:
 
     pip install virtualenv
     virtualenv --python=3 .venv
