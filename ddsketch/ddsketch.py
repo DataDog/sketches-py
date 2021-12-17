@@ -62,7 +62,7 @@ class BaseDDSketch:
         mapping (mapping.KeyMapping): map btw values and store bins
         store (store.Store): storage for positive values
         negative_store (store.Store): storage for negative values
-        zero_count (int): The count of zero values
+        zero_count (float): The count of zero values
 
     Attributes:
         relative_accuracy (float): the accuracy guarantee; referred to as alpha
@@ -238,7 +238,10 @@ class DDSketch(BaseDDSketch):
         store = DenseStore()
         negative_store = DenseStore()
         super().__init__(
-            mapping=mapping, store=store, negative_store=negative_store, zero_count=0
+            mapping=mapping,
+            store=store,
+            negative_store=negative_store,
+            zero_count=0.0,
         )
 
 
@@ -268,7 +271,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
             mapping=mapping,
             store=store,
             negative_store=negative_store,
-            zero_count=0,
+            zero_count=0.0,
         )
 
 
@@ -298,5 +301,5 @@ class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
             mapping=mapping,
             store=store,
             negative_store=negative_store,
-            zero_count=0,
+            zero_count=0.0,
         )
