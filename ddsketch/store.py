@@ -3,9 +3,11 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
-"""Stores map integers to counters. They can be seen as a collection of bins.
+"""
+Stores map integers to counters. They can be seen as a collection of bins.
 We start with 128 bins and grow the store in chunks of 128 unless specified
-otherwise."""
+otherwise.
+"""
 
 from abc import ABC
 from abc import abstractmethod
@@ -16,7 +18,6 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import List
     from typing import Optional
-    from typing import cast
 
 
 CHUNK_SIZE = 128
@@ -67,18 +68,19 @@ class Store(ABC):
 
     @abstractmethod
     def copy(self, store):
-        """copy the input store into this one"""
+        """Copies the input store into this one."""
 
     @abstractmethod
     def length(self):
         # type: () -> int
-        """the number of bins"""
+        """Return the number of bins."""
 
     @abstractmethod
     def add(self, key, weight=1.0):
         # type: (int, float) -> None
         """Updates the counter at the specified index key, growing the number of bins if
-        necessary."""
+        necessary.
+        """
 
     @abstractmethod
     def key_at_rank(self, rank, lower=True):
@@ -100,7 +102,7 @@ class Store(ABC):
     def merge(self, store):
         # type: (Store) -> None
         """Merge another store into this one. This should be equivalent as running the
-        add operations that have *been run on the other store on this one.
+        add operations that have been run on the other store on this one.
         """
 
 
@@ -147,7 +149,7 @@ class DenseStore(Store):
 
     def length(self):
         # type: () -> int
-        """the number of bins"""
+        """Return the number of bins."""
         return len(self.bins)
 
     def add(self, key, weight=1.0):
@@ -158,8 +160,7 @@ class DenseStore(Store):
 
     def _get_index(self, key):
         # type: (int) -> int
-        """calculate the bin index for the key, extending the range if necessary"""
-
+        """Calculate the bin index for the key, extending the range if necessary."""
         if key < self.min_key:
             self._extend_range(key)
         elif key > self.max_key:
@@ -208,7 +209,7 @@ class DenseStore(Store):
 
     def _shift_bins(self, shift):
         # type: (int) -> None
-        """shift the bins; this changes the offset"""
+        """Shift the bins; this changes the offset."""
         if shift > 0:
             self.bins = self.bins[:-shift]
             self.bins[:0] = [0] * shift
@@ -219,7 +220,7 @@ class DenseStore(Store):
 
     def _center_bins(self, new_min_key, new_max_key):
         # type: (int, int) -> None
-        """center the bins; this changes the offset"""
+        """Center the bins; this changes the offset."""
         middle_key = new_min_key + (new_max_key - new_min_key + 1) // 2
         self._shift_bins(self.offset + self.length() // 2 - middle_key)
 
@@ -290,7 +291,7 @@ class CollapsingLowestDenseStore(DenseStore):
 
     def _get_index(self, key):
         # type: (int) -> int
-        """calculate the bin index for the key, extending the range if necessary"""
+        """Calculate the bin index for the key, extending the range if necessary."""
         if key < self.min_key:
             if self.is_collapsed:
                 return 0
@@ -309,7 +310,6 @@ class CollapsingLowestDenseStore(DenseStore):
         resizing the bins, in order to try making it fit the specified
         range. Collapse to the left if necessary.
         """
-
         if new_max_key - new_min_key + 1 > self.length():
             # The range of keys is too wide, the lowest bins need to be collapsed.
             new_min_key = new_max_key - self.length() + 1
@@ -415,7 +415,7 @@ class CollapsingHighestDenseStore(DenseStore):
 
     def _get_index(self, key):
         # type: (int) -> int
-        """calculate the bin index for the key, extending the range if necessary"""
+        """Calculate the bin index for the key, extending the range if necessary"""
         if key > self.max_key:
             if self.is_collapsed:
                 return self.length() - 1
@@ -433,7 +433,6 @@ class CollapsingHighestDenseStore(DenseStore):
         resizing the bins, in order to try making it fit the specified
         range. Collapse to the left if necessary.
         """
-
         if new_max_key - new_min_key + 1 > self.length():
             # The range of keys is too wide, the lowest bins need to be collapsed.
             new_max_key = new_min_key + self.length() - 1

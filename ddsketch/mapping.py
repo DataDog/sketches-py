@@ -28,15 +28,13 @@ class KeyMapping(ABC):
     """
     Args:
         relative_accuracy (float): the accuracy guarantee; referred to as alpha
-            in the paper. (0. < alpha < 1.)
+        in the paper. (0. < alpha < 1.)
         offset (float): an offset that can be used to shift all bin keys
     Attributes:
-        gamma (float): the base for the exponential buckets
-            gamma = (1 + alpha) / (1 - alpha)
+        gamma (float): the base for the exponential buckets. gamma = (1 + alpha) / (1 - alpha)
         min_possible: the smallest value the sketch can distinguish from 0
         max_possible: the largest value the sketch can handle
-        _multiplier (float): used for calculating log_gamma(value)
-            initially, _multiplier = 1 / log(gamma)
+        _multiplier (float): used for calculating log_gamma(value) initially, _multiplier = 1 / log(gamma)
     """
 
     def __init__(self, relative_accuracy, offset=0.0):
@@ -119,14 +117,15 @@ def _cbrt(x):
 
 
 class LinearlyInterpolatedMapping(KeyMapping):
-    """A fast KeyMapping that approximates the memory-optimal one
-    (LogarithmicMapping) by extracting the floor value of the logarithm to the
-     base 2 from the binary representations of floating-point values and
-    linearly interpolating the logarithm in-between."""
+    """A fast KeyMapping that approximates the memory-optimal
+    LogarithmicMapping by extracting the floor value of the logarithm to the
+    base 2 from the binary representations of floating-point values and
+    linearly interpolating the logarithm in-between.
+    """
 
     def _log2_approx(self, value):
         # type: (float) -> float
-        """approximates log2 by s + f
+        """Approximates log2 by s + f
         where v = (s+1) * 2 ** f  for s in [0, 1)
 
         frexp(v) returns m and e s.t.
@@ -139,7 +138,7 @@ class LinearlyInterpolatedMapping(KeyMapping):
 
     def _exp2_approx(self, value):
         # type: (float) -> float
-        """inverse of _log2_approx"""
+        """Inverse of _log2_approx"""
         exponent = math.floor(value) + 1
         mantissa = (value - exponent + 2) / 2.0
         return math.ldexp(mantissa, exponent)
@@ -174,7 +173,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
 
     def _cubic_log2_approx(self, value):
         # type: (float) -> float
-        """approximates log2 using a cubic polynomial"""
+        """Approximates log2 using a cubic polynomial"""
         mantissa, exponent = math.frexp(value)
         significand = 2 * mantissa - 1
         return (
@@ -183,8 +182,7 @@ class CubicallyInterpolatedMapping(KeyMapping):
 
     def _cubic_exp2_approx(self, value):
         # type: (float) -> float
-        """Derived from Cardano's formula"""
-
+        # Derived from Cardano's formula
         exponent = math.floor(value)
         delta_0 = self.B * self.B - 3 * self.A * self.C
         delta_1 = (

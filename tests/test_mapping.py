@@ -20,7 +20,7 @@ from ddsketch.mapping import _cbrt
 
 
 def _relative_error(expected_min, expected_max, actual):
-    """helper method to calculate the relative error"""
+    """Calculate the relative error"""
     if expected_min < 0 or expected_max < 0 or actual < 0:
         raise Exception()
     if (expected_min <= actual) and (actual <= expected_max):
@@ -34,7 +34,7 @@ def _relative_error(expected_min, expected_max, actual):
 
 
 def _test_value_rel_acc(mapping, tester):
-    """calculate the relative accuracy of a mapping on a large range of values"""
+    """Calculate the relative accuracy of a mapping on a large range of values"""
     value_mult = 2 - math.sqrt(2) * 1e-1
     max_relative_acc = 0.0
     value = mapping.min_possible
@@ -62,10 +62,10 @@ class BaseTestKeyMapping(ABC):
 
     @abstractmethod
     def mapping(self, relative_accuracy, offset):
-        """return the KeyMapping instance to be tested"""
+        """Return the KeyMapping instance to be tested"""
 
     def test_accuracy(self):
-        """test the mapping on a large range of relative accuracies"""
+        """Test the mapping on a large range of relative accuracies"""
         rel_acc_mult = 1 - math.sqrt(2) * 1e-1
         min_rel_acc = 1e-8
         rel_acc = 1 - 1e-3
@@ -77,7 +77,7 @@ class BaseTestKeyMapping(ABC):
             rel_acc *= rel_acc_mult
 
     def test_offsets(self):
-        """test offsets"""
+        """Test offsets"""
         for offset in self.offsets:
             mapping = self.mapping(0.01, offset=offset)
             self.assertEqual(mapping.key(1), int(offset))

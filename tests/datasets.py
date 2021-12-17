@@ -34,7 +34,7 @@ class Dataset(ABC):
         return self.data[rank]
 
     @property
-    def sum(self):
+    def sum(self):  # noqa: A003
         return np.sum(self.data)
 
     @property
@@ -43,11 +43,11 @@ class Dataset(ABC):
 
     @abstractproperty
     def name(self):
-        """name of dataset"""
+        """Name of dataset"""
 
     @abstractmethod
     def populate(self):
-        """populate self.data with self.size values"""
+        """Populate self.data with self.size values"""
 
 
 class EmptyDataset(Dataset):

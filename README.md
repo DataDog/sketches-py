@@ -101,5 +101,12 @@ Type checking is done with [mypy](http://mypy-lang.org/):
     riot run mypy
 
 
+### Type-checking
+
+Lint the code with [flake8](https://flake8.pycqa.org/en/latest/):
+
+    riot run flake8
+
+
 ## References
 [1] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019. (The code referenced in the paper, including our implementation of the the Greenwald-Khanna (GK) algorithm, can be found at: https://github.com/DataDog/sketches-py/releases/tag/v0.1 )
