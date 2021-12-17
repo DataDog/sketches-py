@@ -1,6 +1,7 @@
 import abc
 from unittest import TestCase
 
+import pytest
 import six
 
 from ddsketch.mapping import CubicallyInterpolatedMapping
@@ -25,11 +26,11 @@ class BaseTestKeyMappingProto(six.with_metaclass(abc.ABCMeta)):
                 round_trip_mapping = KeyMappingProto.from_proto(
                     KeyMappingProto.to_proto(mapping)
                 )
-                self.assertEqual(type(mapping), type(round_trip_mapping))
-                self.assertAlmostEqual(
-                    mapping.relative_accuracy, round_trip_mapping.relative_accuracy
+                assert type(mapping) == type(round_trip_mapping)
+                assert mapping.relative_accuracy == pytest.approx(
+                    round_trip_mapping.relative_accuracy
                 )
-                self.assertAlmostEqual(mapping.value(0), round_trip_mapping.value(0))
+                assert mapping.value(0) == pytest.approx(round_trip_mapping.value(0))
 
 
 class TestLogarithmicMapping(BaseTestKeyMappingProto, TestCase):
