@@ -17,6 +17,7 @@ jobs:
       - run: pip install riot==0.8
       - run: riot -v run check_fmt
       - run: riot -v run -s mypy
+      - run: riot -v run -s flake8
 
   test:
     strategy:

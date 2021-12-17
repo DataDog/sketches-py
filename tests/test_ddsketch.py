@@ -69,7 +69,7 @@ class BaseTestDDSketches(ABC):
     @staticmethod
     @abstractmethod
     def _new_dd_sketch():
-        """create a new DDSketch of the appropriate type"""
+        """Create a new DDSketch of the appropriate type"""
 
     def _evaluate_sketch_accuracy(self, sketch, data, eps, summary_stats=True):
         size = data.size

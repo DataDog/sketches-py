@@ -110,19 +110,19 @@ class BaseDDSketch:
     @property
     def num_values(self):
         # type: () -> float
-        """float: number of values in the sketch"""
+        """Return the number of values in the sketch."""
         return self.count
 
     @property
     def avg(self):
         # type: () -> float
-        """float: exact avg of the values added to the sketch"""
+        """Return the exact average of the values added to the sketch."""
         return self.sum / self.count
 
     @property
-    def sum(self):
+    def sum(self):  # noqa: A003
         # type: () -> float
-        """float: exact sum of the values added to the sketch"""
+        """Return the exact sum of the values added to the sketch."""
         return self._sum
 
     def add(self, val, weight=1.0):
@@ -148,7 +148,7 @@ class BaseDDSketch:
 
     def get_quantile_value(self, quantile):
         # type: (float) -> Optional[float]
-        """the approximate value at the specified quantile
+        """Return the approximate value at the specified quantile
 
         Args:
             quantile (float): 0 <= q <=1
@@ -210,7 +210,7 @@ class BaseDDSketch:
 
     def copy(self, sketch):
         # type: (BaseDDSketch) -> None
-        """copy the input sketch into this one"""
+        """Copy the input sketch into this one"""
         self.store.copy(sketch.store)
         self.negative_store.copy(sketch.negative_store)
         self.zero_count = sketch.zero_count

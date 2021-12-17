@@ -26,6 +26,20 @@ venv = Venv(
             ],
         ),
         Venv(
+            name="flake8",
+            command="flake8 {cmdargs}",
+            pkgs={
+                "flake8": latest,
+                "flake8-blind-except": latest,
+                "flake8-builtins": latest,
+                "flake8-docstrings": latest,
+                "flake8-logging-format": latest,
+                "flake8-rst-docstrings": latest,
+                # needed for some features from flake8-rst-docstrings
+                "pygments": latest,
+            },
+        ),
+        Venv(
             pkgs={
                 "black": "==21.7b0",
                 "isort": latest,
