@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The implementations of stores and mappings are now exposed via the top
+    level module ``ddsketch``.
