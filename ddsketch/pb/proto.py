@@ -73,10 +73,10 @@ class DDSketchProto:
     def to_proto(self, ddsketch):
         """serialize to protobuf"""
         return pb.DDSketch(
-            mapping=KeyMappingProto.to_proto(ddsketch.mapping),
-            positiveValues=StoreProto.to_proto(ddsketch.store),
-            negativeValues=StoreProto.to_proto(ddsketch.negative_store),
-            zeroCount=ddsketch.zero_count,
+            mapping=KeyMappingProto.to_proto(ddsketch._mapping),
+            positiveValues=StoreProto.to_proto(ddsketch._store),
+            negativeValues=StoreProto.to_proto(ddsketch._negative_store),
+            zeroCount=ddsketch._zero_count,
         )
 
     @classmethod
