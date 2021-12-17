@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    The package version is now exposed through ``ddsketch.__version__``.
