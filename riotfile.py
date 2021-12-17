@@ -67,6 +67,7 @@ venv = Venv(
             pkgs={
                 "mypy": latest,
                 "types-six": latest,
+                "types-setuptools": latest,
             },
         ),
     ],

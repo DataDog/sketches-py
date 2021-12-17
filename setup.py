@@ -6,7 +6,6 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ddsketch",
-    version="1.1.2",
     author="Jee Rim, Charles-Philippe Masson, Homin Lee",
     author_email="jee.rim@datadoghq.com, charles.masson@datadoghq.com, homin@datadoghq.com",
     description="Distributed quantile sketches",
@@ -27,4 +26,6 @@ setuptools.setup(
     ],
     python_requires=">=2.7",
     download_url="https://github.com/DataDog/sketches-py/archive/v1.0.tar.gz",
+    setup_requires=["setuptools_scm"],
+    use_scm_version={"write_to": "ddsketch/__version.py"},
 )

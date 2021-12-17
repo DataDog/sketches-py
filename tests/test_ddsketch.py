@@ -12,6 +12,7 @@ from unittest import TestCase
 import numpy as np
 import six
 
+import ddsketch
 from ddsketch.ddsketch import DDSketch
 from ddsketch.ddsketch import LogCollapsingHighestDenseDDSketch
 from ddsketch.ddsketch import LogCollapsingLowestDenseDDSketch
@@ -234,3 +235,9 @@ class TestLogCollapsingHighestDenseDDSketch(BaseTestDDSketches, TestCase):
     @staticmethod
     def _new_dd_sketch():
         return LogCollapsingHighestDenseDDSketch(TEST_REL_ACC, TEST_BIN_LIMIT)
+
+
+def test_version():
+    """Ensure the package version is exposed by the API."""
+    assert hasattr(ddsketch, "__version__")
+    assert isinstance(ddsketch.__version__, str)
