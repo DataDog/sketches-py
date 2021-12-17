@@ -26,8 +26,6 @@ import sys
 
 import six
 
-from .exception import IllegalArgumentException
-
 
 class KeyMapping(six.with_metaclass(ABCMeta)):
     """
@@ -45,7 +43,9 @@ class KeyMapping(six.with_metaclass(ABCMeta)):
     def __init__(self, relative_accuracy, offset=0.0):
         # type: (float, float) -> None
         if relative_accuracy <= 0 or relative_accuracy >= 1:
-            raise IllegalArgumentException("Relative accuracy must be between 0 and 1.")
+            raise ValueError(
+                "Relative accuracy must be between 0 and 1, got %r" % relative_accuracy
+            )
         self.relative_accuracy = relative_accuracy
         self._offset = offset
 

@@ -36,8 +36,6 @@ DDSketch implementations are also available in:
 """
 import typing
 
-from .exception import IllegalArgumentException
-from .exception import UnequalSketchParametersException
 from .mapping import LogarithmicMapping
 from .store import CollapsingHighestDenseStore
 from .store import CollapsingLowestDenseStore
@@ -141,7 +139,7 @@ class BaseDDSketch(object):
         # type: (float, float) -> None
         """Add a value to the sketch."""
         if weight <= 0.0:
-            raise IllegalArgumentException("weight must be a positive float")
+            raise ValueError("weight must be a positive float, got %r" % weight)
 
         if val > self._mapping.min_possible:
             self._store.add(self._mapping.key(val), weight)
@@ -191,8 +189,9 @@ class BaseDDSketch(object):
         encodes the values that were added to both this and the input sketch.
         """
         if not self._mergeable(sketch):
-            raise UnequalSketchParametersException(
-                "Cannot merge two DDSketches with different parameters"
+            raise ValueError(
+                "Cannot merge two DDSketches with different parameters, got %r and %r"
+                % (self._mapping.gamma, sketch._mapping.gamma)
             )
 
         if sketch.count == 0:
