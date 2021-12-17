@@ -1,3 +1,6 @@
+from __future__ import division
+
+
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
@@ -9,8 +12,7 @@ We start with 128 bins and grow the store in chunks of 128 unless specified
 otherwise.
 """
 
-from abc import ABC
-from abc import abstractmethod
+import abc
 import math
 import typing
 
@@ -18,6 +20,8 @@ import typing
 if typing.TYPE_CHECKING:
     from typing import List
     from typing import Optional
+
+import six
 
 
 CHUNK_SIZE = 128
@@ -51,7 +55,7 @@ _neg_infinity = _NegativeIntInfinity()
 _pos_infinity = _PositiveIntInfinity()
 
 
-class Store(ABC):
+class Store(six.with_metaclass(abc.ABCMeta)):
     """The basic specification of a store
 
     Attributes:
@@ -66,23 +70,23 @@ class Store(ABC):
         self.min_key = _pos_infinity  # type: int
         self.max_key = _neg_infinity  # type: int
 
-    @abstractmethod
+    @abc.abstractmethod
     def copy(self, store):
         """Copies the input store into this one."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def length(self):
         # type: () -> int
         """Return the number of bins."""
 
-    @abstractmethod
+    @abc.abstractmethod
     def add(self, key, weight=1.0):
         # type: (int, float) -> None
         """Updates the counter at the specified index key, growing the number of bins if
         necessary.
         """
 
-    @abstractmethod
+    @abc.abstractmethod
     def key_at_rank(self, rank, lower=True):
         # type: (float, bool) -> int
         """Return the key for the value at given rank.
@@ -98,7 +102,7 @@ class Store(ABC):
              key_at_rank(x) = b for x in (0, 1]
         """
 
-    @abstractmethod
+    @abc.abstractmethod
     def merge(self, store):
         # type: (Store) -> None
         """Merge another store into this one. This should be equivalent as running the
@@ -123,19 +127,21 @@ class DenseStore(Store):
 
     def __init__(self, chunk_size=CHUNK_SIZE):
         # type: (int) -> None
-        super().__init__()
+        super(DenseStore, self).__init__()
 
-        self.chunk_size = chunk_size
-        self.offset = 0
+        self.chunk_size = chunk_size  # type: int
+        self.offset = 0  # type: int
         self.bins = []  # type: List[float]
 
     def __repr__(self):
         # type: () -> str
         repr_str = "{"
         for i, sbin in enumerate(self.bins):
-            repr_str += f"{i+self.offset}: {sbin}, "
-        repr_str += (
-            f"}}, min_key:{self.min_key}, max_key:{self.max_key}, offset:{self.offset}"
+            repr_str += "%s: %s, " % (i + self.offset, sbin)
+        repr_str += "}}, min_key:%s, max_key:%s, offset:%s" % (
+            self.min_key,
+            self.max_key,
+            self.offset,
         )
         return repr_str
 
@@ -171,7 +177,7 @@ class DenseStore(Store):
     def _get_new_length(self, new_min_key, new_max_key):
         # type: (int, int) -> int
         desired_length = new_max_key - new_min_key + 1
-        return self.chunk_size * math.ceil((desired_length) / self.chunk_size)
+        return self.chunk_size * int(math.ceil(desired_length / self.chunk_size))
 
     def _extend_range(self, key, second_key=None):
         # type: (int, Optional[int]) -> None
@@ -182,7 +188,7 @@ class DenseStore(Store):
 
         if self.length() == 0:
             # initialize bins
-            self.bins = [0] * self._get_new_length(new_min_key, new_max_key)
+            self.bins = [0.0] * self._get_new_length(new_min_key, new_max_key)
             self.offset = new_min_key
             self._adjust(new_min_key, new_max_key)
 
@@ -195,7 +201,7 @@ class DenseStore(Store):
             # grow the bins
             new_length = self._get_new_length(new_min_key, new_max_key)
             if new_length > self.length():
-                self.bins.extend([0] * (new_length - self.length()))
+                self.bins.extend([0.0] * (new_length - self.length()))
             self._adjust(new_min_key, new_max_key)
 
     def _adjust(self, new_min_key, new_max_key):
@@ -212,10 +218,10 @@ class DenseStore(Store):
         """Shift the bins; this changes the offset."""
         if shift > 0:
             self.bins = self.bins[:-shift]
-            self.bins[:0] = [0] * shift
+            self.bins[:0] = [0.0] * shift
         else:
             self.bins = self.bins[abs(shift) :]
-            self.bins.extend([0] * abs(shift))
+            self.bins.extend([0.0] * abs(shift))
         self.offset -= shift
 
     def _center_bins(self, new_min_key, new_max_key):
@@ -271,7 +277,7 @@ class CollapsingLowestDenseStore(DenseStore):
 
     def __init__(self, bin_limit, chunk_size=CHUNK_SIZE):
         # type: (int, int) -> None
-        super().__init__()
+        super(CollapsingLowestDenseStore, self).__init__()
         self.bin_limit = bin_limit
         self.is_collapsed = False
 
@@ -279,13 +285,13 @@ class CollapsingLowestDenseStore(DenseStore):
         # type: (CollapsingLowestDenseStore) -> None
         self.bin_limit = store.bin_limit
         self.is_collapsed = store.is_collapsed
-        super().copy(store)
+        super(CollapsingLowestDenseStore, self).copy(store)
 
     def _get_new_length(self, new_min_key, new_max_key):
         # type: (int, int) -> int
         desired_length = new_max_key - new_min_key + 1
         return min(
-            self.chunk_size * math.ceil((desired_length) / self.chunk_size),
+            self.chunk_size * int(math.ceil(desired_length / self.chunk_size)),
             self.bin_limit,
         )
 
@@ -318,7 +324,7 @@ class CollapsingLowestDenseStore(DenseStore):
                 # put everything in the first bin
                 self.offset = new_min_key
                 self.min_key = new_min_key
-                self.bins[:] = [0] * self.length()
+                self.bins[:] = [0.0] * self.length()
                 self.bins[0] = self.count
             else:
                 shift = self.offset - new_min_key
@@ -328,7 +334,7 @@ class CollapsingLowestDenseStore(DenseStore):
                     collapsed_count = sum(
                         self.bins[collapse_start_index:collapse_end_index]
                     )
-                    self.bins[collapse_start_index:collapse_end_index] = [0] * (
+                    self.bins[collapse_start_index:collapse_end_index] = [0.0] * (
                         new_min_key - self.min_key
                     )
                     self.bins[collapse_end_index] += collapsed_count
@@ -392,7 +398,7 @@ class CollapsingHighestDenseStore(DenseStore):
     """
 
     def __init__(self, bin_limit, chunk_size=CHUNK_SIZE):
-        super().__init__()
+        super(CollapsingHighestDenseStore, self).__init__()
         self.bin_limit = bin_limit
         self.is_collapsed = False
 
@@ -400,17 +406,17 @@ class CollapsingHighestDenseStore(DenseStore):
         # type: (CollapsingHighestDenseStore) -> None
         self.bin_limit = store.bin_limit
         self.is_collapsed = store.is_collapsed
-        super().copy(store)
+        super(CollapsingHighestDenseStore, self).copy(store)
 
     def _get_new_length(self, new_min_key, new_max_key):
         # type: (int, int) -> int
         desired_length = new_max_key - new_min_key + 1
-        return typing.cast(
-            int,
+        # For some reason mypy can't infer that min(int, int) is an int, so cast it.
+        return int(
             min(
-                self.chunk_size * math.ceil((desired_length) / self.chunk_size),
+                self.chunk_size * int(math.ceil(desired_length / self.chunk_size)),
                 self.bin_limit,
-            ),
+            )
         )
 
     def _get_index(self, key):
@@ -441,7 +447,7 @@ class CollapsingHighestDenseStore(DenseStore):
                 # put everything in the last bin
                 self.offset = new_min_key
                 self.max_key = new_max_key
-                self.bins[:] = [0] * self.length()
+                self.bins[:] = [0.0] * self.length()
                 self.bins[-1] = self.count
             else:
                 shift = self.offset - new_min_key
@@ -451,7 +457,7 @@ class CollapsingHighestDenseStore(DenseStore):
                     collapsed_count = sum(
                         self.bins[collapse_start_index:collapse_end_index]
                     )
-                    self.bins[collapse_start_index:collapse_end_index] = [0] * (
+                    self.bins[collapse_start_index:collapse_end_index] = [0.0] * (
                         self.max_key - new_max_key
                     )
                     self.bins[collapse_start_index - 1] += collapsed_count

@@ -3,14 +3,13 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
-from abc import ABC
-from abc import abstractmethod
-from abc import abstractproperty
+import abc
 
 import numpy as np
+import six
 
 
-class Dataset(ABC):
+class Dataset(six.with_metaclass(abc.ABCMeta)):
     def __init__(self, size):
         self.size = int(size)
         self.data = self.populate()
@@ -41,11 +40,11 @@ class Dataset(ABC):
     def avg(self):
         return np.mean(self.data)
 
-    @abstractproperty
+    @abc.abstractmethod
     def name(self):
         """Name of dataset"""
 
-    @abstractmethod
+    @abc.abstractmethod
     def populate(self):
         """Populate self.data with self.size values"""
 

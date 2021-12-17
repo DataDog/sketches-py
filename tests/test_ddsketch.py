@@ -5,12 +5,12 @@
 
 """Tests for DDSketch"""
 
-from abc import ABC
-from abc import abstractmethod
+import abc
 from collections import Counter
 from unittest import TestCase
 
 import numpy as np
+import six
 
 from ddsketch.ddsketch import DDSketch
 from ddsketch.ddsketch import LogCollapsingHighestDenseDDSketch
@@ -63,11 +63,11 @@ TEST_REL_ACC = 0.05
 TEST_BIN_LIMIT = 1024
 
 
-class BaseTestDDSketches(ABC):
+class BaseTestDDSketches(six.with_metaclass(abc.ABCMeta)):
     """AbstractBaseClass for testing DDSketch implementations"""
 
     @staticmethod
-    @abstractmethod
+    @abc.abstractmethod
     def _new_dd_sketch():
         """Create a new DDSketch of the appropriate type"""
 

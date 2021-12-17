@@ -1,7 +1,7 @@
 import setuptools
 
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
@@ -22,7 +22,9 @@ setuptools.setup(
     keywords=["ddsketch", "quantile", "sketch"],
     install_requires=[
         "protobuf>=3.14.0",
+        "six",
+        "typing; python_version<'3.5'",
     ],
-    python_requires=">=3.6",
+    python_requires=">=2.7",
     download_url="https://github.com/DataDog/sketches-py/archive/v1.0.tar.gz",
 )

@@ -55,7 +55,7 @@ DEFAULT_REL_ACC = 0.01  # "alpha" in the paper
 DEFAULT_BIN_LIMIT = 2048
 
 
-class BaseDDSketch:
+class BaseDDSketch(object):
     """The base implementation of DDSketch with neither mapping nor storage specified.
 
     Args:
@@ -96,9 +96,17 @@ class BaseDDSketch:
     def __repr__(self):
         # type: () -> str
         return (
-            f"store: {self.store}, negative_store: {self.negative_store}, "
-            f"zero_count: {self.zero_count}, count: {self.count}, "
-            f"sum: {self.sum}, min: {self.min}, max: {self.max}"
+            "store: {}, negative_store: {}, "
+            "zero_count: {}, count: {}, "
+            "sum: {}, min: {}, max: {}"
+        ).format(
+            self.store,
+            self.negative_store,
+            self.zero_count,
+            self.count,
+            self.sum,
+            self.min,
+            self.max,
         )
 
     @property
@@ -237,7 +245,7 @@ class DDSketch(BaseDDSketch):
         mapping = LogarithmicMapping(relative_accuracy)
         store = DenseStore()
         negative_store = DenseStore()
-        super().__init__(
+        super(DDSketch, self).__init__(
             mapping=mapping,
             store=store,
             negative_store=negative_store,
@@ -267,7 +275,7 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
         mapping = LogarithmicMapping(relative_accuracy)
         store = CollapsingLowestDenseStore(bin_limit)
         negative_store = CollapsingLowestDenseStore(bin_limit)
-        super().__init__(
+        super(LogCollapsingLowestDenseDDSketch, self).__init__(
             mapping=mapping,
             store=store,
             negative_store=negative_store,
@@ -297,7 +305,7 @@ class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
         mapping = LogarithmicMapping(relative_accuracy)
         store = CollapsingHighestDenseStore(bin_limit)
         negative_store = CollapsingHighestDenseStore(bin_limit)
-        super().__init__(
+        super(LogCollapsingHighestDenseDDSketch, self).__init__(
             mapping=mapping,
             store=store,
             negative_store=negative_store,
