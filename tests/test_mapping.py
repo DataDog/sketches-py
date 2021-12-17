@@ -33,7 +33,7 @@ def _relative_error(expected_min, expected_max, actual):
     return (actual - expected_max) / expected_max
 
 
-def _test_value_rel_acc(mapping, tester):
+def _test_value_rel_acc(mapping):
     """Calculate the relative accuracy of a mapping on a large range of values"""
     value_mult = 2 - math.sqrt(2) * 1e-1
     max_relative_acc = 0.0
@@ -42,7 +42,7 @@ def _test_value_rel_acc(mapping, tester):
         value *= value_mult
         map_val = mapping.value(mapping.key(value))
         rel_err = _relative_error(value, value, map_val)
-        tester.assertLess(rel_err, mapping.relative_accuracy)
+        assert rel_err < mapping.relative_accuracy
         max_relative_acc = max(max_relative_acc, rel_err)
     max_relative_acc = max(
         max_relative_acc,
@@ -72,15 +72,15 @@ class BaseTestKeyMapping(six.with_metaclass(abc.ABCMeta)):
 
         while rel_acc >= min_rel_acc:
             mapping = self.mapping(rel_acc, offset=0.0)
-            max_rel_acc = _test_value_rel_acc(mapping, self)
-            self.assertLess(max_rel_acc, mapping.relative_accuracy)
+            max_rel_acc = _test_value_rel_acc(mapping)
+            assert max_rel_acc < mapping.relative_accuracy
             rel_acc *= rel_acc_mult
 
     def test_offsets(self):
         """Test offsets"""
         for offset in self.offsets:
             mapping = self.mapping(0.01, offset=offset)
-            self.assertEqual(mapping.key(1), int(offset))
+            assert mapping.key(1) == int(offset)
 
 
 class TestLogarithmicMapping(BaseTestKeyMapping, TestCase):

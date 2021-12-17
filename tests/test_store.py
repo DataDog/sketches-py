@@ -121,7 +121,7 @@ class BaseTestStore(six.with_metaclass(abc.ABCMeta)):
         """Test copying empty stores"""
         store = CollapsingLowestDenseStore(10)
         store.copy(CollapsingLowestDenseStore(10))
-        self.assertEqual(store.count, 0)
+        assert store.count == 0
 
     def test_copying_non_empty(self):
         """Test copying stores"""
@@ -129,7 +129,7 @@ class BaseTestStore(six.with_metaclass(abc.ABCMeta)):
         new_store = CollapsingLowestDenseStore(10)
         new_store.add(0)
         store.copy(new_store)
-        self.assertEqual(store.count, 1)
+        assert store.count == 1
 
 
 class TestDenseStore(BaseTestStore, TestCase):
@@ -139,16 +139,16 @@ class TestDenseStore(BaseTestStore, TestCase):
         counter = Counter(values)
 
         expected_total_count = sum(counter.values())
-        self.assertEqual(expected_total_count, sum(store.bins))
+        assert expected_total_count == sum(store.bins)
         if expected_total_count == 0:
-            self.assertTrue(all([x == 0 for x in store.bins]))
+            assert all([x == 0 for x in store.bins])
         else:
-            self.assertFalse(all([x == 0 for x in store.bins]))
+            assert not all([x == 0 for x in store.bins])
 
             counter = Counter(values)
             for i, sbin in enumerate(store.bins):
                 if sbin != 0:
-                    self.assertEqual(counter[i + store.offset], sbin)
+                    assert counter[i + store.offset] == sbin
 
     def _test_store(self, values):
         store = DenseStore()
@@ -174,18 +174,18 @@ class TestDenseStore(BaseTestStore, TestCase):
         store.add(4)
         store.add(10)
         store.add(100)
-        self.assertEqual(store.key_at_rank(0), 4)
-        self.assertEqual(store.key_at_rank(1), 10)
-        self.assertEqual(store.key_at_rank(2), 100)
-        self.assertEqual(store.key_at_rank(0, lower=False), 4)
-        self.assertEqual(store.key_at_rank(1, lower=False), 10)
-        self.assertEqual(store.key_at_rank(2, lower=False), 100)
-        self.assertEqual(store.key_at_rank(0.5), 4)
-        self.assertEqual(store.key_at_rank(1.5), 10)
-        self.assertEqual(store.key_at_rank(2.5), 100)
-        self.assertEqual(store.key_at_rank(-0.5, lower=False), 4)
-        self.assertEqual(store.key_at_rank(0.5, lower=False), 10)
-        self.assertEqual(store.key_at_rank(1.5, lower=False), 100)
+        assert store.key_at_rank(0) == 4
+        assert store.key_at_rank(1) == 10
+        assert store.key_at_rank(2) == 100
+        assert store.key_at_rank(0, lower=False) == 4
+        assert store.key_at_rank(1, lower=False) == 10
+        assert store.key_at_rank(2, lower=False) == 100
+        assert store.key_at_rank(0.5) == 4
+        assert store.key_at_rank(1.5) == 10
+        assert store.key_at_rank(2.5) == 100
+        assert store.key_at_rank(-0.5, lower=False) == 4
+        assert store.key_at_rank(0.5, lower=False) == 10
+        assert store.key_at_rank(1.5, lower=False) == 100
 
     def test_extreme_values(self):
         """Override. DenseStore is not meant to be used with values that are extremely
@@ -206,12 +206,12 @@ class TestCollapsingLowestDenseStore(BaseTestStore, TestCase):
     def _test_values(self, store, values):
         counter = Counter(values)
         expected_total_count = sum(counter.values())
-        self.assertEqual(expected_total_count, sum(store.bins))
+        assert expected_total_count == sum(store.bins)
 
         if expected_total_count == 0:
-            self.assertTrue(all([x == 0 for x in store.bins]))
+            assert all([x == 0 for x in store.bins])
         else:
-            self.assertFalse(all([x == 0 for x in store.bins]))
+            assert not all([x == 0 for x in store.bins])
 
             max_index = max(counter)
             min_storable_index = max(float("-inf"), max_index - store.bin_limit + 1)
@@ -219,7 +219,7 @@ class TestCollapsingLowestDenseStore(BaseTestStore, TestCase):
 
             for i, sbin in enumerate(store.bins):
                 if sbin != 0:
-                    self.assertEqual(counter[i + store.offset], sbin)
+                    assert counter[i + store.offset] == sbin
 
     def _test_store(self, values):
         for bin_limit in TEST_BIN_LIMIT:
@@ -248,11 +248,11 @@ class TestCollapsingHighestDenseStore(BaseTestStore, TestCase):
         counter = Counter(values)
 
         expected_total_count = sum(counter.values())
-        self.assertEqual(expected_total_count, sum(store.bins))
+        assert expected_total_count == sum(store.bins)
         if expected_total_count == 0:
-            self.assertTrue(all([x == 0 for x in store.bins]))
+            assert all([x == 0 for x in store.bins])
         else:
-            self.assertFalse(all([x == 0 for x in store.bins]))
+            assert not all([x == 0 for x in store.bins])
 
             min_index = min(counter)
             max_storable_index = min(float("+inf"), min_index + store.bin_limit - 1)
@@ -260,7 +260,7 @@ class TestCollapsingHighestDenseStore(BaseTestStore, TestCase):
 
             for i, sbin in enumerate(store.bins):
                 if sbin != 0:
-                    self.assertEqual(counter[i + store.offset], sbin)
+                    assert counter[i + store.offset] == sbin
 
     def _test_store(self, values):
         for bin_limit in TEST_BIN_LIMIT[1:2]:

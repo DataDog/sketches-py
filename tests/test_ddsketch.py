@@ -10,6 +10,7 @@ from collections import Counter
 from unittest import TestCase
 
 import numpy as np
+import pytest
 import six
 
 import ddsketch
@@ -78,11 +79,11 @@ class BaseTestDDSketches(six.with_metaclass(abc.ABCMeta)):
             sketch_q = sketch.get_quantile_value(quantile)
             data_q = data.quantile(quantile)
             err = abs(sketch_q - data_q)
-            self.assertTrue(err - eps * abs(data_q) <= 1e-15)
-        self.assertEqual(sketch.num_values, size)
+            assert err - eps * abs(data_q) <= 1e-15
+        assert sketch.num_values == size
         if summary_stats:
-            self.assertAlmostEqual(sketch.sum, data.sum)
-            self.assertAlmostEqual(sketch.avg, data.avg)
+            assert sketch.sum == pytest.approx(data.sum)
+            assert sketch.avg == pytest.approx(data.avg)
 
     def test_distributions(self):
         """Test DDSketch on values from various distributions"""
@@ -112,10 +113,10 @@ class BaseTestDDSketches(six.with_metaclass(abc.ABCMeta)):
         data_median = 99
         sketch_median = sketch.get_quantile_value(0.5)
         err = abs(sketch_median - data_median)
-        self.assertTrue(err - TEST_REL_ACC * abs(data_median) <= 1e-15)
-        self.assertAlmostEqual(sketch.num_values, 110 * 2)
-        self.assertAlmostEqual(sketch.sum, 5445 + 11000)
-        self.assertAlmostEqual(sketch.avg, 74.75)
+        assert err - TEST_REL_ACC * abs(data_median) <= 1e-15
+        assert sketch.num_values == pytest.approx(110 * 2)
+        assert sketch.sum == pytest.approx(5445 + 11000)
+        assert sketch.avg == pytest.approx(74.75)
 
     def test_merge_equal(self):
         """Test merging equal-sized DDSketches"""
@@ -175,7 +176,7 @@ class BaseTestDDSketches(six.with_metaclass(abc.ABCMeta)):
             sketch1.add(value)
         sketch1.merge(sketch2)
         # sketch2 is still empty
-        self.assertEqual(sketch2.num_values, 0)
+        assert sketch2.num_values == 0
 
         dataset = Normal(50)
         for value in dataset.data:
@@ -197,8 +198,7 @@ class BaseTestDDSketches(six.with_metaclass(abc.ABCMeta)):
             sketch2.avg,
             sketch2.num_values,
         ]
-        self.assertAlmostEqual(
-            sketch2_summary,
+        assert sketch2_summary == pytest.approx(
             [sketch2.get_quantile_value(q) for q in TEST_QUANTILES]
             + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
@@ -206,8 +206,7 @@ class BaseTestDDSketches(six.with_metaclass(abc.ABCMeta)):
         sketch3 = self._new_dd_sketch()
         sketch3.merge(sketch2)
         # merging to an empty sketch does not change sketch2
-        self.assertAlmostEqual(
-            sketch2_summary,
+        assert sketch2_summary == pytest.approx(
             [sketch2.get_quantile_value(q) for q in TEST_QUANTILES]
             + [sketch2.sum, sketch2.avg, sketch2.num_values],
         )
