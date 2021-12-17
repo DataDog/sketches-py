@@ -63,8 +63,10 @@ venv = Venv(
         Venv(
             name="mypy",
             command="mypy {cmdargs}",
+            create=True,
             pkgs={
                 "mypy": latest,
+                "types-six": latest,
             },
         ),
     ],

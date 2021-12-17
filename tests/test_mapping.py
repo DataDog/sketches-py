@@ -5,13 +5,13 @@
 
 """Tests for the KeyMapping classes"""
 
-from abc import ABC
-from abc import abstractmethod
+import abc
 import math
 from unittest import TestCase
 
 import numpy
 import pytest
+import six
 
 from ddsketch.mapping import CubicallyInterpolatedMapping
 from ddsketch.mapping import LinearlyInterpolatedMapping
@@ -55,12 +55,12 @@ def _test_value_rel_acc(mapping, tester):
     return max_relative_acc
 
 
-class BaseTestKeyMapping(ABC):
+class BaseTestKeyMapping(six.with_metaclass(abc.ABCMeta)):
     """Abstract class for testing KeyMapping classes"""
 
     offsets = [0, 1, -12.23, 7768.3]
 
-    @abstractmethod
+    @abc.abstractmethod
     def mapping(self, relative_accuracy, offset):
         """Return the KeyMapping instance to be tested"""
 
@@ -106,4 +106,4 @@ class TestCubicallyInterpolatedMapping(BaseTestKeyMapping, TestCase):
 
 @pytest.mark.parametrize("x", [-12.3, -1.0, -1.0 / 3.0, 0.0, 1.0, 1.0 / 3.0, 2.0 ** 10])
 def test_cbrt(x):
-    assert math.isclose(_cbrt(x), numpy.cbrt(x))
+    assert pytest.approx(_cbrt(x), numpy.cbrt(x))

@@ -5,11 +5,12 @@
 
 """Tests for the Store classes"""
 
-from abc import ABC
-from abc import abstractmethod
+import abc
 from collections import Counter
 import sys
 from unittest import TestCase
+
+import six
 
 from ddsketch.store import CollapsingHighestDenseStore
 from ddsketch.store import CollapsingLowestDenseStore
@@ -21,18 +22,18 @@ EXTREME_MAX = sys.maxsize
 EXTREME_MIN = -sys.maxsize - 1
 
 
-class BaseTestStore(ABC):
+class BaseTestStore(six.with_metaclass(abc.ABCMeta)):
     """Base class for testing Store classes"""
 
-    @abstractmethod
+    @abc.abstractmethod
     def _test_values(self, store, values):
         """Test the store's bin counts against what we expect"""
 
-    @abstractmethod
+    @abc.abstractmethod
     def _test_store(self, values):
         """Initialize the store; add the values; call _test_values"""
 
-    @abstractmethod
+    @abc.abstractmethod
     def _test_merging(self, list_values):
         """
         Initialize the stores; for each values in list_values, add them to the

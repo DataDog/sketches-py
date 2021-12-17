@@ -1,5 +1,7 @@
-from abc import ABC
+import abc
 from unittest import TestCase
+
+import six
 
 from ddsketch.mapping import CubicallyInterpolatedMapping
 from ddsketch.mapping import LinearlyInterpolatedMapping
@@ -12,7 +14,7 @@ from tests.test_ddsketch import TestDDSketch
 from tests.test_store import TestDenseStore
 
 
-class BaseTestKeyMappingProto(ABC):
+class BaseTestKeyMappingProto(six.with_metaclass(abc.ABCMeta)):
     offsets = [0, 1, -12.23, 7768.3]
 
     def test_round_trip(self):
@@ -62,7 +64,9 @@ class TestStoreProto(TestDenseStore, TestCase):
 class TestDDSketchProto(TestDDSketch, TestCase):
     def _evaluate_sketch_accuracy(self, sketch, data, eps, summary_stats=False):
         round_trip_sketch = DDSketchProto.from_proto(DDSketchProto.to_proto(sketch))
-        super()._evaluate_sketch_accuracy(round_trip_sketch, data, eps, summary_stats)
+        super(TestDDSketchProto, self)._evaluate_sketch_accuracy(
+            round_trip_sketch, data, eps, summary_stats
+        )
 
     def test_add_multiple(self):
         """Override."""

@@ -1,3 +1,6 @@
+from __future__ import division
+
+
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
@@ -16,15 +19,17 @@ the LogarithmicMapping, but it requires the costly evaluation of the logarithm
 when computing the index. Other mappings can approximate the logarithmic
 mapping, while being less computationally costly.
 """
-from abc import ABC
+from abc import ABCMeta
 from abc import abstractmethod
 import math
 import sys
 
+import six
+
 from .exception import IllegalArgumentException
 
 
-class KeyMapping(ABC):
+class KeyMapping(six.with_metaclass(ABCMeta)):
     """
     Args:
         relative_accuracy (float): the accuracy guarantee; referred to as alpha
@@ -96,12 +101,12 @@ class LogarithmicMapping(KeyMapping):
 
     def __init__(self, relative_accuracy, offset=0.0):
         # type: (float, float) -> None
-        super().__init__(relative_accuracy, offset=offset)
+        super(LogarithmicMapping, self).__init__(relative_accuracy, offset=offset)
         self._multiplier *= math.log(2)
 
     def _log_gamma(self, value):
         # type: (float) -> float
-        return math.log2(value) * self._multiplier
+        return math.log(value, 2) * self._multiplier
 
     def _pow_gamma(self, value):
         # type: (float) -> float
@@ -139,7 +144,7 @@ class LinearlyInterpolatedMapping(KeyMapping):
     def _exp2_approx(self, value):
         # type: (float) -> float
         """Inverse of _log2_approx"""
-        exponent = math.floor(value) + 1
+        exponent = int(math.floor(value) + 1)
         mantissa = (value - exponent + 2) / 2.0
         return math.ldexp(mantissa, exponent)
 
@@ -162,13 +167,15 @@ class CubicallyInterpolatedMapping(KeyMapping):
     <a href="https://github.com/DataDog/sketches-java/">sketches-java</a>
     """
 
-    A = 6 / 35
-    B = -3 / 5
-    C = 10 / 7
+    A = 6.0 / 35.0
+    B = -3.0 / 5.0
+    C = 10.0 / 7.0
 
     def __init__(self, relative_accuracy, offset=0.0):
         # type: (float, float) -> None
-        super().__init__(relative_accuracy, offset=offset)
+        super(CubicallyInterpolatedMapping, self).__init__(
+            relative_accuracy, offset=offset
+        )
         self._multiplier /= self.C
 
     def _cubic_log2_approx(self, value):
@@ -183,19 +190,19 @@ class CubicallyInterpolatedMapping(KeyMapping):
     def _cubic_exp2_approx(self, value):
         # type: (float) -> float
         # Derived from Cardano's formula
-        exponent = math.floor(value)
+        exponent = int(math.floor(value))
         delta_0 = self.B * self.B - 3 * self.A * self.C
         delta_1 = (
-            2 * self.B * self.B * self.B
-            - 9 * self.A * self.B * self.C
-            - 27 * self.A * self.A * (value - exponent)
+            2.0 * self.B * self.B * self.B
+            - 9.0 * self.A * self.B * self.C
+            - 27.0 * self.A * self.A * (value - exponent)
         )
         cardano = _cbrt(
             (delta_1 - ((delta_1 * delta_1 - 4 * delta_0 * delta_0 * delta_0) ** 0.5))
-            / 2
+            / 2.0
         )
         significand_plus_one = (
-            -(self.B + cardano + delta_0 / cardano) / (3 * self.A) + 1
+            -(self.B + cardano + delta_0 / cardano) / (3.0 * self.A) + 1.0
         )
         mantissa = significand_plus_one / 2
         return math.ldexp(mantissa, exponent + 1)
