@@ -62,12 +62,10 @@ venv = Venv(
         ),
         Venv(
             name="mypy",
-            command="mypy {cmdargs}",
             create=True,
+            command="mypy --install-types --non-interactive {cmdargs}",
             pkgs={
                 "mypy": latest,
-                "types-six": latest,
-                "types-setuptools": latest,
             },
         ),
     ],
