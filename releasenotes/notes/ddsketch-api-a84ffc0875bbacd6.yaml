@@ -1,0 +1,6 @@
+---
+upgrade:
+  - "``DDSketch`` attributes ``mapping``, ``store``, ``negative_store``, ``zero_count``, ``relative_accuracy``, ``min`` and ``max`` have been removed."
+  - "``DDSketch.copy`` method has been removed."
+  - "``DDSketch.count`` attribute has been made read-only."
+  - "``DDSketch.mergeable`` method has been removed."

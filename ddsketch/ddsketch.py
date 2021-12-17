@@ -82,15 +82,15 @@ class BaseDDSketch(object):
         zero_count,
     ):
         # type: (KeyMapping, Store, Store, float) -> None
-        self.mapping = mapping
-        self.store = store
-        self.negative_store = negative_store
-        self.zero_count = zero_count
+        self._mapping = mapping
+        self._store = store
+        self._negative_store = negative_store
+        self._zero_count = zero_count
 
-        self.relative_accuracy = mapping.relative_accuracy
-        self.count = self.negative_store.count + self.zero_count + self.store.count
-        self.min = float("+inf")
-        self.max = float("-inf")
+        self._relative_accuracy = mapping.relative_accuracy
+        self._count = self._negative_store.count + self._zero_count + self._store.count
+        self._min = float("+inf")
+        self._max = float("-inf")
         self._sum = 0.0
 
     def __repr__(self):
@@ -100,14 +100,18 @@ class BaseDDSketch(object):
             "zero_count: {}, count: {}, "
             "sum: {}, min: {}, max: {}"
         ).format(
-            self.store,
-            self.negative_store,
-            self.zero_count,
-            self.count,
-            self.sum,
-            self.min,
-            self.max,
+            self._store,
+            self._negative_store,
+            self._zero_count,
+            self._count,
+            self._sum,
+            self._min,
+            self._max,
         )
+
+    @property
+    def count(self):
+        return self._count
 
     @property
     def name(self):
@@ -119,13 +123,13 @@ class BaseDDSketch(object):
     def num_values(self):
         # type: () -> float
         """Return the number of values in the sketch."""
-        return self.count
+        return self._count
 
     @property
     def avg(self):
         # type: () -> float
         """Return the exact average of the values added to the sketch."""
-        return self.sum / self.count
+        return self._sum / self._count
 
     @property
     def sum(self):  # noqa: A003
@@ -139,24 +143,24 @@ class BaseDDSketch(object):
         if weight <= 0.0:
             raise IllegalArgumentException("weight must be a positive float")
 
-        if val > self.mapping.min_possible:
-            self.store.add(self.mapping.key(val), weight)
-        elif val < -self.mapping.min_possible:
-            self.negative_store.add(self.mapping.key(-val), weight)
+        if val > self._mapping.min_possible:
+            self._store.add(self._mapping.key(val), weight)
+        elif val < -self._mapping.min_possible:
+            self._negative_store.add(self._mapping.key(-val), weight)
         else:
-            self.zero_count += weight
+            self._zero_count += weight
 
         # Keep track of summary stats
-        self.count += weight
+        self._count += weight
         self._sum += val * weight
-        if val < self.min:
-            self.min = val
-        if val > self.max:
-            self.max = val
+        if val < self._min:
+            self._min = val
+        if val > self._max:
+            self._max = val
 
     def get_quantile_value(self, quantile):
         # type: (float) -> Optional[float]
-        """Return the approximate value at the specified quantile
+        """Return the approximate value at the specified quantile.
 
         Args:
             quantile (float): 0 <= q <=1
@@ -164,29 +168,29 @@ class BaseDDSketch(object):
         Returns:
             the value at the specified quantile or None if the sketch is empty
         """
-        if quantile < 0 or quantile > 1 or self.count == 0:
+        if quantile < 0 or quantile > 1 or self._count == 0:
             return None
 
-        rank = quantile * (self.count - 1)
-        if rank < self.negative_store.count:
-            reversed_rank = self.negative_store.count - rank - 1
-            key = self.negative_store.key_at_rank(reversed_rank, lower=False)
-            quantile_value = -self.mapping.value(key)
-        elif rank < self.zero_count + self.negative_store.count:
+        rank = quantile * (self._count - 1)
+        if rank < self._negative_store.count:
+            reversed_rank = self._negative_store.count - rank - 1
+            key = self._negative_store.key_at_rank(reversed_rank, lower=False)
+            quantile_value = -self._mapping.value(key)
+        elif rank < self._zero_count + self._negative_store.count:
             return 0
         else:
-            key = self.store.key_at_rank(
-                rank - self.zero_count - self.negative_store.count
+            key = self._store.key_at_rank(
+                rank - self._zero_count - self._negative_store.count
             )
-            quantile_value = self.mapping.value(key)
+            quantile_value = self._mapping.value(key)
         return quantile_value
 
     def merge(self, sketch):
         # type: (BaseDDSketch) -> None
-        """Merges the other sketch into this one. After this operation, this sketch
+        """Merge the given sketch into this one. After this operation, this sketch
         encodes the values that were added to both this and the input sketch.
         """
-        if not self.mergeable(sketch):
+        if not self._mergeable(sketch):
             raise UnequalSketchParametersException(
                 "Cannot merge two DDSketches with different parameters"
             )
@@ -194,45 +198,45 @@ class BaseDDSketch(object):
         if sketch.count == 0:
             return
 
-        if self.count == 0:
-            self.copy(sketch)
+        if self._count == 0:
+            self._copy(sketch)
             return
 
         # Merge the stores
-        self.store.merge(sketch.store)
-        self.negative_store.merge(sketch.negative_store)
-        self.zero_count += sketch.zero_count
+        self._store.merge(sketch._store)
+        self._negative_store.merge(sketch._negative_store)
+        self._zero_count += sketch._zero_count
 
         # Merge summary stats
-        self.count += sketch.count
-        self._sum += sketch.sum
-        if sketch.min < self.min:
-            self.min = sketch.min
-        if sketch.max > self.max:
-            self.max = sketch.max
+        self._count += sketch._count
+        self._sum += sketch._sum
+        if sketch._min < self._min:
+            self._min = sketch._min
+        if sketch._max > self._max:
+            self._max = sketch._max
 
-    def mergeable(self, other):
+    def _mergeable(self, other):
         # type: (BaseDDSketch) -> bool
         """Two sketches can be merged only if their gammas are equal."""
-        return self.mapping.gamma == other.mapping.gamma
+        return self._mapping.gamma == other._mapping.gamma
 
-    def copy(self, sketch):
+    def _copy(self, sketch):
         # type: (BaseDDSketch) -> None
         """Copy the input sketch into this one"""
-        self.store.copy(sketch.store)
-        self.negative_store.copy(sketch.negative_store)
-        self.zero_count = sketch.zero_count
-        self.min = sketch.min
-        self.max = sketch.max
-        self.count = sketch.count
-        self._sum = sketch.sum
+        self._store.copy(sketch._store)
+        self._negative_store.copy(sketch._negative_store)
+        self._zero_count = sketch._zero_count
+        self._min = sketch._min
+        self._max = sketch._max
+        self._count = sketch._count
+        self._sum = sketch._sum
 
 
 class DDSketch(BaseDDSketch):
     """The default implementation of BaseDDSketch, with optimized memory usage at
     the cost of lower ingestion speed, using an unlimited number of bins. The
     number of bins will not exceed a reasonable number unless the data is
-    distributed with tails heavier than any  subexponential.
+    distributed with tails heavier than any subexponential.
     (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
@@ -259,8 +263,8 @@ class LogCollapsingLowestDenseDDSketch(BaseDDSketch):
     number of bins is reached, bins with lowest indices are collapsed, which
     causes the relative accuracy to be lost on the lowest quantiles. For the
     default bin limit, collapsing is unlikely to occur unless the data is
-    distributed with tails heavier than any
-    subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    distributed with tails heavier than any subexponential.
+    (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
     def __init__(self, relative_accuracy=None, bin_limit=None):
@@ -289,8 +293,8 @@ class LogCollapsingHighestDenseDDSketch(BaseDDSketch):
     number of bins is reached, bins with highest indices are collapsed, which
     causes the relative accuracy to be lost on the highest quantiles. For the
     default bin limit, collapsing is unlikely to occur unless the data is
-    distributed with tails heavier than any
-    subexponential. (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
+    distributed with tails heavier than any subexponential.
+    (cf. http://www.vldb.org/pvldb/vol12/p2195-masson.pdf)
     """
 
     def __init__(self, relative_accuracy=None, bin_limit=None):
