@@ -115,7 +115,7 @@ class LogarithmicMapping(KeyMapping):
 
 def _cbrt(x):
     # type: (float) -> float
-    y = abs(x) ** (1.0 / 3.0)
+    y = float(abs(x) ** (1.0 / 3.0))
     if x < 0:
         return -y
     return y
