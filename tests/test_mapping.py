@@ -104,6 +104,6 @@ class TestCubicallyInterpolatedMapping(BaseTestKeyMapping, TestCase):
         return CubicallyInterpolatedMapping(relative_accuracy, offset)
 
 
-@pytest.mark.parametrize("x", [-12.3, -1.0, -1.0 / 3.0, 0.0, 1.0, 1.0 / 3.0, 2.0 ** 10])
+@pytest.mark.parametrize("x", [-12.3, -1.0, -1.0 / 3.0, 0.0, 1.0, 1.0 / 3.0, 2.0**10])
 def test_cbrt(x):
     assert pytest.approx(_cbrt(x), numpy.cbrt(x))

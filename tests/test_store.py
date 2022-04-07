@@ -63,12 +63,12 @@ class BaseTestStore(six.with_metaclass(abc.ABCMeta)):
 
     def test_increasing_exponentially(self):
         """Test a stream of values increasing exponentially"""
-        values = [2 ** x for x in range(16)]
+        values = [2**x for x in range(16)]
         self._test_store(values)
 
     def test_decreasing_exponentially(self):
         """Test a stream of values decreasing exponentially"""
-        values = [2 ** x for x in reversed(range(16))]
+        values = [2**x for x in reversed(range(16))]
         self._test_store(values)
 
     def test_bin_counts(self):
