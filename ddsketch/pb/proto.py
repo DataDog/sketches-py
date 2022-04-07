@@ -13,11 +13,11 @@ class KeyMappingProto:
     @classmethod
     def _proto_interpolation(cls, mapping):
         if type(mapping) is LogarithmicMapping:
-            return pb.IndexMapping.Interpolation.NONE
+            return pb.IndexMapping.NONE
         if type(mapping) is LinearlyInterpolatedMapping:
-            return pb.IndexMapping.Interpolation.LINEAR
+            return pb.IndexMapping.LINEAR
         if type(mapping) is CubicallyInterpolatedMapping:
-            return pb.IndexMapping.Interpolation.CUBIC
+            return pb.IndexMapping.CUBIC
 
     @classmethod
     def to_proto(cls, mapping):
@@ -31,13 +31,13 @@ class KeyMappingProto:
     @classmethod
     def from_proto(cls, proto):
         """deserialize from protobuf"""
-        if proto.interpolation == pb.IndexMapping.Interpolation.NONE:
+        if proto.interpolation == pb.IndexMapping.NONE:
             return LogarithmicMapping.from_gamma_offset(proto.gamma, proto.indexOffset)
-        elif proto.interpolation == pb.IndexMapping.Interpolation.LINEAR:
+        elif proto.interpolation == pb.IndexMapping.LINEAR:
             return LinearlyInterpolatedMapping.from_gamma_offset(
                 proto.gamma, proto.indexOffset
             )
-        elif proto.interpolation == pb.IndexMapping.Interpolation.CUBIC:
+        elif proto.interpolation == pb.IndexMapping.CUBIC:
             return CubicallyInterpolatedMapping.from_gamma_offset(
                 proto.gamma, proto.indexOffset
             )

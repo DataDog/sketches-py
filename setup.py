@@ -20,7 +20,7 @@ setuptools.setup(
     ],
     keywords=["ddsketch", "quantile", "sketch"],
     install_requires=[
-        "protobuf>=3.14.0",
+        "protobuf>=3.0.0",
         "six",
         "typing; python_version<'3.5'",
     ],

@@ -1,0 +1,4 @@
+---
+other:
+  - |
+    Add support for protobuf>=3.0.0.

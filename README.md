@@ -112,5 +112,18 @@ Lint the code with [flake8](https://flake8.pycqa.org/en/latest/):
     riot run flake8
 
 
+### Protobuf
+
+The protobuf is stored in the go repository: https://github.com/DataDog/sketches-go/blob/master/ddsketch/pb/ddsketch.proto
+
+Install the minimum required protoc and generate the Python code:
+
+```sh
+docker run -v $PWD:/code -it ubuntu:18.04 /bin/bash
+apt update && apt install protobuf-compiler  # default is 3.0.0
+protoc --proto_path=ddsketch/pb/ --python_out=ddsketch/pb/ ddsketch/pb/ddsketch.proto
+```
+
+
 ## References
 [1] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019. (The code referenced in the paper, including our implementation of the the Greenwald-Khanna (GK) algorithm, can be found at: https://github.com/DataDog/sketches-py/releases/tag/v0.1 )

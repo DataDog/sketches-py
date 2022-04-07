@@ -8,11 +8,24 @@ venv = Venv(
         Venv(
             name="test",
             command="pytest {cmdargs}",
-            pys=["2.7", "3.6", "3.7", "3.8", "3.9", "3.10"],
             pkgs={
                 "pytest": latest,
                 "numpy": latest,
             },
+            venvs=[
+                Venv(
+                    pys=["2.7", "3.6", "3.7", "3.8", "3.9"],
+                    pkgs={
+                        "protobuf": ["==3.0.0", latest],
+                    },
+                ),
+                Venv(
+                    pys=["3.10"],
+                    pkgs={
+                        "protobuf": ["==3.8.0", latest],
+                    },
+                ),
+            ],
         ),
         Venv(
             pkgs={
