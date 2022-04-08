@@ -125,5 +125,20 @@ protoc --proto_path=ddsketch/pb/ --python_out=ddsketch/pb/ ddsketch/pb/ddsketch.
 ```
 
 
+### Releasing
+
+1. Generate the release notes and use [`pandoc`](https://pandoc.org/) to format
+them for Github:
+```bash
+    riot run -s reno report --no-show-source | pandoc -f rst -t gfm --wrap=none
+```
+   Copy the output into a new release: https://github.com/DataDog/sketches-py/releases/new.
+
+2. Enter a tag for the release (following [`semver`](https://semver.org)) (eg. `v1.1.3`, `v1.0.3`, `v1.2.0`).
+3. Use the tag without the `v` as the title.
+4. Save the release as a draft and pass the link to someone else to give a quick review.
+5. If all looks good hit publish
+
+
 ## References
 [1] Charles Masson and Jee E Rim and Homin K. Lee. DDSketch: A fast and fully-mergeable quantile sketch with relative-error guarantees. PVLDB, 12(12): 2195-2205, 2019. (The code referenced in the paper, including our implementation of the the Greenwald-Khanna (GK) algorithm, can be found at: https://github.com/DataDog/sketches-py/releases/tag/v0.1 )
