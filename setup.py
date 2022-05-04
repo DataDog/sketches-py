@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="http://github.com/datadog/sketches-py",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=["tests*"]),
     package_data={"ddsketch": ["py.typed"]},
     classifiers=[
         "Programming Language :: Python :: 3",

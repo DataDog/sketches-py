@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Exclude the tests module from the package.
