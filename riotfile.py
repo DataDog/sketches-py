@@ -79,6 +79,9 @@ venv = Venv(
             command="mypy --install-types --non-interactive {cmdargs}",
             pkgs={
                 "mypy": latest,
+                "types-protobuf": latest,
+                "types-setuptools": latest,
+                "types-six": latest,
             },
         ),
     ],

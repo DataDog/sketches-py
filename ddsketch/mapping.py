@@ -110,7 +110,7 @@ class LogarithmicMapping(KeyMapping):
 
     def _pow_gamma(self, value):
         # type: (float) -> float
-        return 2 ** (value / self._multiplier)
+        return math.pow(2.0, value / self._multiplier)
 
 
 def _cbrt(x):
