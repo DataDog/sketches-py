@@ -130,6 +130,7 @@ protoc --proto_path=ddsketch/pb/ --python_out=ddsketch/pb/ ddsketch/pb/ddsketch.
 1. Generate the release notes and use [`pandoc`](https://pandoc.org/) to format
 them for Github:
 ```bash
+    git checkout master && git pull
     riot run -s reno report --no-show-source | pandoc -f rst -t gfm --wrap=none
 ```
    Copy the output into a new release: https://github.com/DataDog/sketches-py/releases/new.
