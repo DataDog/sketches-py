@@ -14,9 +14,19 @@ venv = Venv(
             },
             venvs=[
                 Venv(
-                    pys=["2.7", "3.6", "3.7", "3.8", "3.9"],
+                    pys=["2.7", "3.6"],
                     pkgs={
-                        "protobuf": ["==3.0.0", "<3.19.0", latest],
+                        "protobuf": [
+                            "==3.0.0",
+                            "<3.19",
+                            "!=4.21.0",
+                        ],  # not latest due to https://github.com/protocolbuffers/protobuf/issues/10053
+                    },
+                ),
+                Venv(
+                    pys=["3.7", "3.8", "3.9"],
+                    pkgs={
+                        "protobuf": ["==3.0.0", "<3.19", latest],
                     },
                 ),
                 Venv(
