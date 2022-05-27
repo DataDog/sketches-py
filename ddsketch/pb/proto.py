@@ -6,7 +6,15 @@ from ..mapping import (
 )
 from ..store import DenseStore
 
-import ddsketch.pb.ddsketch_pb2 as pb
+import google.protobuf
+
+
+pb_version = tuple(map(int, google.protobuf.__version__.split(".")[0:2]))
+
+if pb_version >= (3, 19, 0):
+    import ddsketch.pb.ddsketch_pb2 as pb
+else:
+    import ddsketch.pb.ddsketch_pre319_pb2 as pb
 
 
 class KeyMappingProto:
