@@ -182,7 +182,8 @@ class DenseStore(Store):
     def _extend_range(self, key, second_key=None):
         # type: (int, Optional[int]) -> None
         """Grow the bins as necessary and call _adjust"""
-        second_key = second_key or key
+        if second_key is None:
+            second_key = key
         new_min_key = min(key, second_key, self.min_key)
         new_max_key = max(key, second_key, self.max_key)
 

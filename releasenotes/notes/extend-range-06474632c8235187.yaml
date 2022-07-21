@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix merging stores with max_key=0.
