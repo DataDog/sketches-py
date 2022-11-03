@@ -30,7 +30,7 @@ venv = Venv(
                     },
                 ),
                 Venv(
-                    pys=["3.10"],
+                    pys=["3.10", "3.11"],
                     pkgs={
                         "protobuf": ["==3.8.0", "<3.19.0", latest],
                     },
