@@ -22,11 +22,7 @@ setuptools.setup(
     install_requires=[
         "six",
     ],
-    extras_require={
-        "serialization": [
-            "protobuf>=3.0.0"
-        ]
-    },
+    extras_require={"serialization": ["protobuf>=3.0.0"]},
     python_requires=">=3.7",
     download_url="https://github.com/DataDog/sketches-py/archive/v1.0.tar.gz",
     setup_requires=["setuptools_scm"],
