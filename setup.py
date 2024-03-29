@@ -20,11 +20,15 @@ setuptools.setup(
     ],
     keywords=["ddsketch", "quantile", "sketch"],
     install_requires=[
-        "protobuf>=3.0.0; python_version>='3.7'",
-        "protobuf>=3.0.0,<4.21.0; python_version<'3.7'",
         "six",
         "typing; python_version<'3.5'",
     ],
+    extras_require={
+        "serialization": [
+            "protobuf>=3.0.0; python_version>='3.7'",
+            "protobuf>=3.0.0,<4.21.0; python_version<'3.7'",
+        ]
+    },
     python_requires=">=2.7",
     download_url="https://github.com/DataDog/sketches-py/archive/v1.0.tar.gz",
     setup_requires=["setuptools_scm"],
