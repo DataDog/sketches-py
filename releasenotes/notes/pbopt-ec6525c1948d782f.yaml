@@ -1,0 +1,4 @@
+---
+other:
+  - |
+    This change makes protobuf an optional requirement. It can be installed with ``pip install ddsketch[serialization]``.

@@ -218,7 +218,6 @@ class UniformSqrt(Dataset):
 
 
 class Constant(Dataset):
-
     constant = 42.0
 
     @property
@@ -230,7 +229,6 @@ class Constant(Dataset):
 
 
 class Exponential(Dataset):
-
     scale = 0.01
 
     @classmethod
@@ -247,7 +245,6 @@ class Exponential(Dataset):
 
 
 class Lognormal(Dataset):
-
     scale = 100.0
 
     @classmethod
@@ -264,7 +261,6 @@ class Lognormal(Dataset):
 
 
 class Normal(Dataset):
-
     loc = 37.4
     scale = 1.0
 
@@ -283,7 +279,6 @@ class Normal(Dataset):
 
 
 class Laplace(Dataset):
-
     loc = 11278.0
     scale = 100.0
 
@@ -302,7 +297,6 @@ class Laplace(Dataset):
 
 
 class Bimodal(Dataset):
-
     right_loc = 17.3
     left_loc = -2.0
     left_std = 3.0
@@ -322,7 +316,6 @@ class Bimodal(Dataset):
 
 
 class Mixed(Dataset):
-
     mean = 0.0
     sigma = 0.25
     scale_factor = 0.1
@@ -351,7 +344,6 @@ class Mixed(Dataset):
 
 
 class Trimodal(Dataset):
-
     right_loc = 17.3
     left_loc = 5.0
     left_std = 0.5
@@ -374,7 +366,6 @@ class Trimodal(Dataset):
 
 
 class Integers(Dataset):
-
     loc = 4.3
     scale = 5.0
 
