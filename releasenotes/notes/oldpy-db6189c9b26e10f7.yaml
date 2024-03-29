@@ -1,0 +1,4 @@
+---
+other:
+  - |
+    This release drops support for Python versions older than 3.7.

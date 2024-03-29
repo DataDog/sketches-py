@@ -43,10 +43,10 @@ from .store import DenseStore
 
 
 if typing.TYPE_CHECKING:
-    from typing import Optional
+    from typing import Optional  # noqa: F401
 
-    from .mapping import KeyMapping
-    from .store import Store
+    from .mapping import KeyMapping  # noqa: F401
+    from .store import Store  # noqa: F401
 
 
 DEFAULT_REL_ACC = 0.01  # "alpha" in the paper

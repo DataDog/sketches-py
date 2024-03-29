@@ -14,25 +14,15 @@ venv = Venv(
             },
             venvs=[
                 Venv(
-                    pys=["2.7", "3.6"],
-                    pkgs={
-                        "protobuf": [
-                            "==3.0.0",
-                            "<3.19",
-                            "!=4.21.0",
-                        ],  # not latest due to https://github.com/protocolbuffers/protobuf/issues/10053
-                    },
-                ),
-                Venv(
                     pys=["3.7", "3.8", "3.9"],
                     pkgs={
-                        "protobuf": ["==3.0.0", "<3.19", latest],
+                        "protobuf": ["==3.0.0", latest],
                     },
                 ),
                 Venv(
-                    pys=["3.10"],
+                    pys=["3.10", "3.11", "3.12"],
                     pkgs={
-                        "protobuf": ["==3.8.0", "<3.19.0", latest],
+                        "protobuf": ["==3.8.0", latest],
                     },
                 ),
             ],
@@ -56,7 +46,6 @@ venv = Venv(
                 "flake8-blind-except": latest,
                 "flake8-builtins": latest,
                 "flake8-docstrings": latest,
-                "flake8-logging-format": latest,
                 "flake8-rst-docstrings": latest,
                 # needed for some features from flake8-rst-docstrings
                 "pygments": latest,
