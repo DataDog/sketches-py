@@ -18,8 +18,8 @@ import typing
 
 
 if typing.TYPE_CHECKING:
-    from typing import List
-    from typing import Optional
+    from typing import List  # noqa: F401
+    from typing import Optional  # noqa: F401
 
 import six
 

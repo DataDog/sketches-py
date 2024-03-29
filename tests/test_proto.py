@@ -26,7 +26,7 @@ class BaseTestKeyMappingProto(six.with_metaclass(abc.ABCMeta)):
                 round_trip_mapping = KeyMappingProto.from_proto(
                     KeyMappingProto.to_proto(mapping)
                 )
-                assert type(mapping) == type(round_trip_mapping)
+                assert type(mapping) == type(round_trip_mapping)  # noqa: E721
                 assert mapping.relative_accuracy == pytest.approx(
                     round_trip_mapping.relative_accuracy
                 )
