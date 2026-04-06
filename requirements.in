@@ -1,0 +1,5 @@
+# Core dependencies from setup.py install_requires
+six
+
+# Optional dependencies (extras_require["serialization"])
+protobuf>=3.0.0
